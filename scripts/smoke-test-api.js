@@ -1,4 +1,6 @@
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+const PROJECT_ID = 'project-001';
+const DOCUMENT_ID = 'DOC-001';
 
 const results = [];
 
@@ -81,7 +83,7 @@ async function main() {
   });
 
   await runTest('GET project documents returns documents', async () => {
-    const body = await expectJson('GET', '/api/v1/projects/project-001/documents', 200);
+    const body = await expectJson('GET', `/api/v1/projects/${PROJECT_ID}/documents`, 200);
     assert(Array.isArray(body.data), 'Expected data array.');
     assert(body.meta && body.meta.totalDocuments > 0, 'Expected meta.totalDocuments > 0.');
   });
@@ -89,7 +91,7 @@ async function main() {
   await runTest('GET project documents by tag Architettura', async () => {
     const body = await expectJson(
       'GET',
-      '/api/v1/projects/project-001/documents?tag=Architettura',
+      `/api/v1/projects/${PROJECT_ID}/documents?tag=Architettura`,
       200,
     );
     const documents = getDocuments(body);
@@ -103,7 +105,7 @@ async function main() {
   await runTest('GET project documents by search Francesca', async () => {
     const body = await expectJson(
       'GET',
-      '/api/v1/projects/project-001/documents?search=Francesca',
+      `/api/v1/projects/${PROJECT_ID}/documents?search=Francesca`,
       200,
     );
     assert(Array.isArray(body.data), 'Expected data array.');
@@ -112,15 +114,19 @@ async function main() {
   await runTest('GET project documents with wrong query param returns INVALID_QUERY_PARAM', async () => {
     const body = await expectJson(
       'GET',
-      '/api/v1/projects/project-001/documents?wrongParam=1',
+      `/api/v1/projects/${PROJECT_ID}/documents?wrongParam=1`,
       400,
     );
     assert(body.code === 'INVALID_QUERY_PARAM', `Expected INVALID_QUERY_PARAM, got ${body.code}.`);
   });
 
   await runTest('GET DOC-001 detail returns public fileInfo only', async () => {
-    const body = await expectJson('GET', '/api/v1/projects/project-001/documents/DOC-001', 200);
-    assert(body.data && body.data.id === 'DOC-001', 'Expected data.id DOC-001.');
+    const body = await expectJson(
+      'GET',
+      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
+      200,
+    );
+    assert(body.data && body.data.id === DOCUMENT_ID, `Expected data.id ${DOCUMENT_ID}.`);
     assert(body.data.fileInfo, 'Expected fileInfo.');
     assert(
       !Object.prototype.hasOwnProperty.call(body.data.fileInfo, 'storagePath'),
@@ -129,21 +135,24 @@ async function main() {
   });
 
   await runTest('GET DOC-999 returns DOCUMENT_NOT_FOUND', async () => {
-    const body = await expectJson('GET', '/api/v1/projects/project-001/documents/DOC-999', 404);
+    const body = await expectJson('GET', `/api/v1/projects/${PROJECT_ID}/documents/DOC-999`, 404);
     assert(body.code === 'DOCUMENT_NOT_FOUND', `Expected DOCUMENT_NOT_FOUND, got ${body.code}.`);
   });
 
   await runTest('GET invalid document id returns INVALID_DOCUMENT_ID', async () => {
     const body = await expectJson(
       'GET',
-      '/api/v1/projects/project-001/documents/not-existing-document-id',
+      `/api/v1/projects/${PROJECT_ID}/documents/not-existing-document-id`,
       400,
     );
     assert(body.code === 'INVALID_DOCUMENT_ID', `Expected INVALID_DOCUMENT_ID, got ${body.code}.`);
   });
 
   await runTest('GET DOC-001 file returns 200', async () => {
-    const result = await request('GET', '/api/v1/projects/project-001/documents/DOC-001/file');
+    const result = await request(
+      'GET',
+      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}/file`,
+    );
     assert(result.response.status === 200, `Expected status 200, got ${result.response.status}.`);
     assert(String(result.body).length > 0, 'Expected non-empty file response.');
   });
@@ -151,7 +160,7 @@ async function main() {
   await runTest('PATCH DOC-001 status to in_review', async () => {
     const body = await expectJson(
       'PATCH',
-      '/api/v1/projects/project-001/documents/DOC-001',
+      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
       200,
       { status: 'in_review' },
     );
@@ -161,7 +170,7 @@ async function main() {
   await runTest('PATCH DOC-001 ownerId returns INVALID_DOCUMENT_PATCH', async () => {
     const body = await expectJson(
       'PATCH',
-      '/api/v1/projects/project-001/documents/DOC-001',
+      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
       400,
       { ownerId: 'owner-002' },
     );
@@ -172,14 +181,18 @@ async function main() {
   });
 
   await runTest('DELETE DOC-001 archives document', async () => {
-    const body = await expectJson('DELETE', '/api/v1/projects/project-001/documents/DOC-001', 200);
+    const body = await expectJson(
+      'DELETE',
+      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
+      200,
+    );
     assert(body.data && body.data.status === 'archived', 'Expected status archived.');
   });
 
   await runTest('PATCH archived DOC-001 returns DOCUMENT_ARCHIVED', async () => {
     const body = await expectJson(
       'PATCH',
-      '/api/v1/projects/project-001/documents/DOC-001',
+      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
       409,
       { status: 'approved' },
     );

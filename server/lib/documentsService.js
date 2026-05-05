@@ -170,6 +170,7 @@ function buildGroupedDocumentsResponse(documents) {
   };
 }
 
+// La home documentale mostra package -> task -> documenti; il grouping resta nel service per mantenere semplice la query SQL.
 function groupDocumentsByPackage(documents) {
   const packagesByProjectAndId = new Map();
   const tasksByPackageAndId = new Map();
