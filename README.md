@@ -80,7 +80,7 @@ http://localhost:3000/docs
 
 Il client in `client/` e' un client TypeScript Fetch generato da OpenAPI e contiene uno script demo che chiama il server locale.
 
-Nota: il server in `server/` e' un mock/prototipo operativo basato su OpenAPI. Il backend reale futuro del progetto Management as Code resta da allineare con le scelte del team e potra' essere implementato in NestJS.
+Nota: il server in `server/` e' un mock/prototipo operativo basato su OpenAPI. Non e' production-ready e non va trattato come backend definitivo. Il backend reale futuro del progetto Management as Code resta da allineare con le scelte del team e potra' essere implementato in NestJS.
 
 ## Database
 
@@ -103,7 +103,7 @@ Lo schema crea le tabelle principali:
 
 Il seed popola dati demo e documenti collegati a file locali in `storage/documents/`.
 
-Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Non inserire credenziali reali nel codice o nella documentazione.
+Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Il file `.env.example` contiene valori di esempio per l'ambiente locale: copiarlo in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
 
 ## Installazione ed esecuzione
 
@@ -112,6 +112,18 @@ Prerequisiti consigliati:
 - Node.js recente;
 - PostgreSQL installato e avviato;
 - database locale configurato in modo coerente con `.env` o con i fallback degli script.
+
+Preparare la configurazione locale:
+
+```bash
+copy .env.example .env
+```
+
+Su sistemi Unix-like:
+
+```bash
+cp .env.example .env
+```
 
 Installare le dipendenze:
 
@@ -176,7 +188,7 @@ Non devono essere versionati file locali o generati come:
 - build temporanee;
 - storage locale se contiene file non demo o dati non condivisibili.
 
-I file presenti in `storage/documents/` sono usati dal prototipo come file demo per testare il download. Prima di condividere il repository, verificare sempre che non contengano dati sensibili.
+I file presenti in `storage/documents/`, quando disponibili, sono usati dal prototipo come file demo per testare il download dei documenti seed. Per questo motivo la cartella non viene ignorata in blocco da `.gitignore`. Prima di condividere il repository, verificare sempre che contenga solo file demo e nessun dato reale o sensibile.
 
 ## Stato del progetto
 
@@ -191,6 +203,8 @@ Questo repository e' un **prototipo/MVP didattico** a supporto del tirocinio cur
 - client generato da OpenAPI.
 
 Non include funzionalita' fuori scope come autenticazione, ACL, upload manuale, generazione template, audit trail avanzato, versioning storico, condivisione o esportazione avanzata.
+
+Durante la verifica locale, `npm audit --omit=dev` risulta pulito su root e client, mentre il server mock puo' segnalare vulnerabilita' high in dipendenze transitive del server generato OpenAPI. Per la demo locale non sono state aggiornate dipendenze major; prima di un eventuale uso reale va rivalutato lo stack del mock server con aggiornamenti controllati.
 
 ## Prossimi sviluppi
 

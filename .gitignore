@@ -1,11 +1,13 @@
-@"
 node_modules/
 .env
 .env.*
 !.env.example
-storage/
 dist/
 build/
 coverage/
 npm-debug.log*
-"@ | Set-Content .gitignore
+server/node_modules/
+client/node_modules/
+
+# I file demo in storage/documents/ servono al prototipo e non sono ignorati.
+# Non aggiungere file reali o sensibili nello storage del repository.
