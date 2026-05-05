@@ -388,12 +388,6 @@ export interface InlineResponse2001Tags {
      * @type {string}
      * @memberof InlineResponse2001Tags
      */
-    id: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof InlineResponse2001Tags
-     */
     name: string;
 }
 /**

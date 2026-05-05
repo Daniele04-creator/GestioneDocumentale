@@ -123,12 +123,10 @@ async function addTagsToDocuments(documents) {
     `
       SELECT
         dt.document_id,
-        tg.id,
-        tg.name
+        dt.tag_name
       FROM document_tags dt
-      JOIN tags tg ON dt.tag_id = tg.id
       WHERE dt.document_id = ANY($1::varchar[])
-      ORDER BY tg.name
+      ORDER BY dt.tag_name
     `,
     [documentIds],
   );
@@ -141,8 +139,7 @@ async function addTagsToDocuments(documents) {
     }
 
     tagsByDocumentId.get(row.document_id).push({
-      id: row.id,
-      name: row.name,
+      name: row.tag_name,
     });
   }
 
@@ -169,9 +166,8 @@ function addTextSearchFilter(where, params, search) {
     OR EXISTS (
       SELECT 1
       FROM document_tags search_dt
-      JOIN tags search_tg ON search_dt.tag_id = search_tg.id
       WHERE search_dt.document_id = d.id
-        AND search_tg.name ILIKE $${params.length}
+        AND search_dt.tag_name ILIKE $${params.length}
     )
   )`);
 }
@@ -185,9 +181,8 @@ function addTagFilter(where, params, tagName) {
   where.push(`EXISTS (
     SELECT 1
     FROM document_tags filter_dt
-    JOIN tags filter_tg ON filter_dt.tag_id = filter_tg.id
     WHERE filter_dt.document_id = d.id
-      AND lower(filter_tg.name) = lower($${params.length})
+      AND lower(filter_dt.tag_name) = lower($${params.length})
   )`);
 }
 

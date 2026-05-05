@@ -70,16 +70,15 @@ CREATE TABLE documents (
 );
 
 CREATE TABLE tags (
-  id VARCHAR(100) PRIMARY KEY,
-  name VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(100) PRIMARY KEY,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT chk_tags_name_not_empty CHECK (length(trim(name)) > 0)
 );
 
 CREATE TABLE document_tags (
   document_id VARCHAR(30) NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  tag_id VARCHAR(100) NOT NULL REFERENCES tags(id) ON DELETE RESTRICT,
-  PRIMARY KEY (document_id, tag_id)
+  tag_name VARCHAR(100) NOT NULL REFERENCES tags(name) ON DELETE RESTRICT ON UPDATE CASCADE,
+  PRIMARY KEY (document_id, tag_name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name);
@@ -94,5 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
 CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
 CREATE INDEX IF NOT EXISTS idx_documents_updated_at ON documents(updated_at);
 CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_tags_lower_name ON tags (lower(name));
 CREATE INDEX IF NOT EXISTS idx_document_tags_document_id ON document_tags(document_id);
-CREATE INDEX IF NOT EXISTS idx_document_tags_tag_id ON document_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_document_tags_tag_name ON document_tags(tag_name);
+CREATE INDEX IF NOT EXISTS idx_document_tags_lower_tag_name ON document_tags (lower(tag_name));

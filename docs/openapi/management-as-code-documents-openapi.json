@@ -344,14 +344,9 @@
                                         "items": {
                                           "type": "object",
                                           "required": [
-                                            "id",
                                             "name"
                                           ],
                                           "properties": {
-                                            "id": {
-                                              "type": "string",
-                                              "example": "tag-architettura"
-                                            },
                                             "name": {
                                               "type": "string",
                                               "example": "Architettura"
@@ -813,14 +808,9 @@
                           "items": {
                             "type": "object",
                             "required": [
-                              "id",
                               "name"
                             ],
                             "properties": {
-                              "id": {
-                                "type": "string",
-                                "example": "tag-architettura"
-                              },
                               "name": {
                                 "type": "string",
                                 "example": "Architettura"
@@ -1156,14 +1146,9 @@
                           "items": {
                             "type": "object",
                             "required": [
-                              "id",
                               "name"
                             ],
                             "properties": {
-                              "id": {
-                                "type": "string",
-                                "example": "tag-architettura"
-                              },
                               "name": {
                                 "type": "string",
                                 "example": "Architettura"
@@ -1509,14 +1494,9 @@
                           "items": {
                             "type": "object",
                             "required": [
-                              "id",
                               "name"
                             ],
                             "properties": {
-                              "id": {
-                                "type": "string",
-                                "example": "tag-architettura"
-                              },
                               "name": {
                                 "type": "string",
                                 "example": "Architettura"
