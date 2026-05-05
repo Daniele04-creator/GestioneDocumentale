@@ -1,0 +1,1 @@
+Demo state management notes for filters, selected package, task, document detail, and loading states.                          

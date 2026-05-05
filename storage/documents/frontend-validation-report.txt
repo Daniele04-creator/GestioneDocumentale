@@ -1,0 +1,1 @@
+Demo frontend validation report for document home integration, generated client usage, and expected UI mapping.     
