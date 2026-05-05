@@ -8,7 +8,6 @@
     "build": "npm --prefix server run build && npm --prefix client run build",
     "start": "npm --prefix server start",
     "start:dev": "nodemon",
-    "client:generate": "openapi-ts -i docs/openapi/management-as-code-documents-openapi.json -o client/generated -c @hey-api/client-fetch",
     "client:demo": "npm --prefix client run demo",
     "test:api": "node scripts/smoke-test-api.js",
     "db:schema": "node scripts/run-schema.js",
@@ -19,7 +18,6 @@
     "pg": "^8.20.0"
   },
   "devDependencies": {
-    "@hey-api/openapi-ts": "^0.97.1",
     "nodemon": "^3.1.14"
   }
 }

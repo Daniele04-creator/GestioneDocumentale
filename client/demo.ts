@@ -1,116 +1,89 @@
-import { client } from './generated/client.gen';
 import {
-  healthControllerGetHealth,
-  projectDocumentsControllerArchiveProjectDocument,
-  projectDocumentsControllerGetProjectDocumentById,
-  projectDocumentsControllerGetProjectDocumentTree,
-  projectDocumentsControllerListProjectDocuments,
-  projectDocumentsControllerUpdateProjectDocument,
-} from './generated';
+  Configuration,
+  HealthApi,
+  ProjectDocumentsApi,
+  UpdateDocumentRequest,
+} from './index';
 
-const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+const basePath = process.env.API_BASE_URL || 'http://localhost:3000';
 const projectId = 'project-001';
 const documentId = 'DOC-001';
 
-client.setConfig({ baseUrl });
+const configuration = new Configuration({ basePath });
+const fetchApi = ((requestUrl: string, init?: any) =>
+  fetch(requestUrl, init)) as any;
+const healthApi = new HealthApi(configuration, undefined, fetchApi);
+const documentsApi = new ProjectDocumentsApi(configuration, undefined, fetchApi);
 
 async function main() {
-  const health = await expectSuccess(
-    healthControllerGetHealth(),
-    'health',
-  );
+  const health = await healthApi.healthControllerGetHealth();
   console.log('health:', health.status);
 
-  const tree = await expectSuccess(
-    projectDocumentsControllerGetProjectDocumentTree({
-      path: { projectId },
-    }),
-    'document tree',
-  );
+  const tree = await documentsApi.projectDocumentsControllerGetProjectDocumentTree(projectId);
   console.log('document tree:', tree.meta.totalDocuments);
 
-  const list = await expectSuccess(
-    projectDocumentsControllerListProjectDocuments({
-      path: { projectId },
-    }),
-    'project documents',
-  );
+  const list = await documentsApi.projectDocumentsControllerListProjectDocuments(projectId);
   console.log('project documents:', list.meta.totalDocuments);
 
-  const architetturaFilter = await expectSuccess(
-    projectDocumentsControllerListProjectDocuments({
-      path: { projectId },
-      query: { tag: 'Architettura' },
-    }),
-    'tag Architettura',
+  const architetturaFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
+    projectId,
+    undefined,
+    undefined,
+    'Architettura',
   );
   assertDocumentsHaveTag(architetturaFilter, 'Architettura');
   console.log('tag Architettura:', architetturaFilter.meta.totalDocuments);
 
-  const qaFilter = await expectSuccess(
-    projectDocumentsControllerListProjectDocuments({
-      path: { projectId },
-      query: { tag: 'QA' },
-    }),
-    'tag QA',
+  const qaFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
+    projectId,
+    undefined,
+    undefined,
+    'QA',
   );
   assertDocumentsHaveTag(qaFilter, 'QA');
   console.log('tag QA:', qaFilter.meta.totalDocuments);
 
-  const missingTagFilter = await expectSuccess(
-    projectDocumentsControllerListProjectDocuments({
-      path: { projectId },
-      query: { tag: 'TagInesistente' },
-    }),
-    'tag TagInesistente',
+  const missingTagFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
+    projectId,
+    undefined,
+    undefined,
+    'TagInesistente',
   );
   assertEmptyResult(missingTagFilter, 'missing tag');
   console.log('tag TagInesistente:', missingTagFilter.meta.totalDocuments);
 
-  const ownerSearch = await expectSuccess(
-    projectDocumentsControllerListProjectDocuments({
-      path: { projectId },
-      query: { search: 'Francesca' },
-    }),
-    'search Francesca',
+  const ownerSearch = await documentsApi.projectDocumentsControllerListProjectDocuments(
+    projectId,
+    'Francesca',
   );
   assertHasDocuments(ownerSearch, 'search Francesca');
   console.log('search Francesca:', ownerSearch.meta.totalDocuments);
 
-  const apiSearch = await expectSuccess(
-    projectDocumentsControllerListProjectDocuments({
-      path: { projectId },
-      query: { search: 'api' },
-    }),
-    'search api',
+  const apiSearch = await documentsApi.projectDocumentsControllerListProjectDocuments(
+    projectId,
+    'api',
   );
   assertHasDocuments(apiSearch, 'search api');
   console.log('search api:', apiSearch.meta.totalDocuments);
 
   await expectInvalidQueryParam();
 
-  const detail = await expectSuccess(
-    projectDocumentsControllerGetProjectDocumentById({
-      path: { projectId, documentId },
-    }),
-    'document detail',
+  const detail = await documentsApi.projectDocumentsControllerGetProjectDocumentById(
+    documentId,
+    projectId,
   );
   console.log('document detail:', detail.data.id, detail.data.title);
 
-  const updated = await expectSuccess(
-    projectDocumentsControllerUpdateProjectDocument({
-      path: { projectId, documentId },
-      body: { status: 'in_review' },
-    }),
-    'update document',
+  const updated = await documentsApi.projectDocumentsControllerUpdateProjectDocument(
+    { status: UpdateDocumentRequest.StatusEnum.InReview },
+    documentId,
+    projectId,
   );
   console.log('updated status:', updated.data.status);
 
-  const archived = await expectSuccess(
-    projectDocumentsControllerArchiveProjectDocument({
-      path: { projectId, documentId },
-    }),
-    'archive document',
+  const archived = await documentsApi.projectDocumentsControllerArchiveProjectDocument(
+    documentId,
+    projectId,
   );
   console.log('archived status:', archived.data.status);
 
@@ -155,51 +128,55 @@ function assertHasDocuments(response: any, label: string) {
 }
 
 async function expectInvalidQueryParam() {
-  const response = await projectDocumentsControllerListProjectDocuments({
-    path: { projectId },
-    query: { wrongParam: '1' },
-  } as any);
-
-  expectError(response, 400, 'INVALID_QUERY_PARAM');
-  console.log('invalid query:', response.response?.status, response.error?.code);
+  try {
+    await documentsApi.projectDocumentsControllerListProjectDocuments(
+      projectId,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { query: { wrongParam: '1' } },
+    );
+    throw new Error('Expected 400 INVALID_QUERY_PARAM, but the request succeeded.');
+  } catch (error: any) {
+    await expectResponseError(error, 400, 'INVALID_QUERY_PARAM');
+  }
 }
 
 async function expectArchivedConflict() {
-  const response = await projectDocumentsControllerUpdateProjectDocument({
-    path: { projectId, documentId },
-    body: { status: 'approved' },
-  });
-
-  expectError(response, 409, 'DOCUMENT_ARCHIVED');
-  console.log('archived conflict:', response.response?.status, response.error?.code);
-}
-
-async function expectSuccess<T>(
-  request: Promise<{ data?: T; error?: unknown; response?: Response }>,
-  label: string,
-) {
-  const response = await request;
-
-  if (response.error || !response.data) {
-    throw new Error(`${label} failed with status ${response.response?.status}.`);
-  }
-
-  return response.data;
-}
-
-function expectError(
-  response: { error?: any; response?: Response },
-  expectedStatus: number,
-  expectedCode: string,
-) {
-  if (response.response?.status !== expectedStatus || response.error?.code !== expectedCode) {
-    throw new Error(
-      `Expected ${expectedStatus} ${expectedCode}, got ${response.response?.status} ${response.error?.code}.`,
+  try {
+    await documentsApi.projectDocumentsControllerUpdateProjectDocument(
+      { status: UpdateDocumentRequest.StatusEnum.Approved },
+      documentId,
+      projectId,
     );
+    throw new Error('Expected 409 DOCUMENT_ARCHIVED, but the request succeeded.');
+  } catch (error: any) {
+    await expectResponseError(error, 409, 'DOCUMENT_ARCHIVED');
   }
 }
 
-main().catch((error: any) => {
-  console.error('client demo failed:', error);
+async function expectResponseError(error: Response, expectedStatus: number, expectedCode: string) {
+  if (error.status !== expectedStatus) {
+    throw error;
+  }
+
+  const body = await error.json();
+  if (body.code !== expectedCode) {
+    throw new Error(`Expected ${expectedCode}, got ${body.code}.`);
+  }
+
+  console.log('expected error:', error.status, body.code);
+}
+
+main().catch(async (error: any) => {
+  if (error && typeof error.json === 'function') {
+    const body = await error.json();
+    console.error('client demo failed:', error.status, body);
+  } else {
+    console.error('client demo failed:', error);
+  }
   process.exit(1);
 });
