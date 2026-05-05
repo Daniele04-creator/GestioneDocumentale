@@ -88,6 +88,27 @@ async function main() {
     assert(body.meta && body.meta.totalDocuments > 0, 'Expected meta.totalDocuments > 0.');
   });
 
+  await runTest('GET project document tree returns lightweight structure', async () => {
+    const body = await expectJson('GET', `/api/v1/projects/${PROJECT_ID}/document-tree`, 200);
+    assert(Array.isArray(body.data), 'Expected data array.');
+    assert(body.data.length > 0, 'Expected at least one package.');
+    assert(body.meta && body.meta.totalDocuments > 0, 'Expected meta.totalDocuments > 0.');
+
+    const firstPackage = body.data[0];
+    assert(firstPackage.taskCount >= 1, 'Expected package taskCount.');
+    assert(firstPackage.documentCount >= 1, 'Expected package documentCount.');
+    assert(firstPackage.statusSummary, 'Expected package statusSummary.');
+    assert(Array.isArray(firstPackage.tasks), 'Expected package tasks array.');
+
+    const firstTask = firstPackage.tasks[0];
+    assert(firstTask.documentCount >= 1, 'Expected task documentCount.');
+    assert(firstTask.statusSummary, 'Expected task statusSummary.');
+    assert(
+      !Object.prototype.hasOwnProperty.call(firstTask, 'documents'),
+      'Document tree tasks must not contain full documents array.',
+    );
+  });
+
   await runTest('GET project documents by tag Architettura', async () => {
     const body = await expectJson(
       'GET',

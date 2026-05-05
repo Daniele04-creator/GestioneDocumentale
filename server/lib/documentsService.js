@@ -31,6 +31,14 @@ async function getProjectDocuments(projectId, query) {
   return buildGroupedDocumentsResponse(documents);
 }
 
+async function getProjectDocumentTree(projectId) {
+  const validProjectId = validateProjectId(projectId);
+  await ensureProjectExists(validProjectId);
+
+  const rows = await repository.findDocumentTreeByProject(validProjectId);
+  return buildDocumentTreeResponse(rows);
+}
+
 async function getProjectDocumentById(projectId, documentId) {
   const validProjectId = validateProjectId(projectId);
   const validDocumentId = validateDocumentId(documentId);
@@ -170,6 +178,25 @@ function buildGroupedDocumentsResponse(documents) {
   };
 }
 
+function buildDocumentTreeResponse(rows) {
+  const packages = groupDocumentTreeRows(rows);
+
+  return {
+    data: packages,
+    meta: {
+      totalPackages: packages.length,
+      totalTasks: packages.reduce(
+        (total, documentPackage) => total + documentPackage.taskCount,
+        0,
+      ),
+      totalDocuments: packages.reduce(
+        (total, documentPackage) => total + documentPackage.documentCount,
+        0,
+      ),
+    },
+  };
+}
+
 // La home documentale mostra package -> task -> documenti; il grouping resta nel service per mantenere semplice la query SQL.
 function groupDocumentsByPackage(documents) {
   const packagesByProjectAndId = new Map();
@@ -243,6 +270,44 @@ function groupDocumentsByPackage(documents) {
   return Array.from(packagesByProjectAndId.values());
 }
 
+function groupDocumentTreeRows(rows) {
+  const packagesById = new Map();
+
+  for (const row of rows) {
+    if (!packagesById.has(row.package_id)) {
+      packagesById.set(row.package_id, {
+        id: row.package_id,
+        name: row.package_name,
+        parentPackage: row.parent_package_id
+          ? {
+              id: row.parent_package_id,
+              name: row.parent_package_name,
+            }
+          : null,
+        taskCount: 0,
+        documentCount: 0,
+        statusSummary: createStatusSummary(),
+        tasks: [],
+      });
+    }
+
+    const documentPackage = packagesById.get(row.package_id);
+    const task = {
+      id: row.task_id,
+      name: row.task_name,
+      documentCount: Number(row.document_count),
+      statusSummary: createStatusSummaryFromRow(row),
+    };
+
+    documentPackage.taskCount += 1;
+    documentPackage.documentCount += task.documentCount;
+    addStatusSummary(documentPackage.statusSummary, task.statusSummary);
+    documentPackage.tasks.push(task);
+  }
+
+  return Array.from(packagesById.values());
+}
+
 function createStatusSummary() {
   return {
     draft: 0,
@@ -250,6 +315,22 @@ function createStatusSummary() {
     approved: 0,
     archived: 0,
   };
+}
+
+function createStatusSummaryFromRow(row) {
+  return {
+    draft: Number(row.draft_count),
+    in_review: Number(row.in_review_count),
+    approved: Number(row.approved_count),
+    archived: Number(row.archived_count),
+  };
+}
+
+function addStatusSummary(target, source) {
+  target.draft += source.draft;
+  target.in_review += source.in_review;
+  target.approved += source.approved;
+  target.archived += source.archived;
 }
 
 function incrementStatus(statusSummary, status) {
@@ -290,6 +371,7 @@ async function isExistingFile(absolutePath) {
 
 module.exports = {
   getProjectDocuments,
+  getProjectDocumentTree,
   getProjectDocumentById,
   getProjectDocumentFile,
   updateProjectDocument,

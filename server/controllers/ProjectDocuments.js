@@ -28,6 +28,16 @@ module.exports.projectDocumentsController_downloadProjectDocumentFile = function
     });
 };
 
+module.exports.projectDocumentsController_getProjectDocumentTree = function projectDocumentsController_getProjectDocumentTree (req, res, next, projectId) {
+  ProjectDocuments.projectDocumentsController_getProjectDocumentTree(projectId)
+    .then(function (response) {
+      utils.writeJson(res, response);
+    })
+    .catch(function (response) {
+      utils.writeJson(res, response);
+    });
+};
+
 module.exports.projectDocumentsController_getProjectDocumentById = function projectDocumentsController_getProjectDocumentById (req, res, next, projectId, documentId) {
   ProjectDocuments.projectDocumentsController_getProjectDocumentById(documentId, projectId)
     .then(function (response) {
@@ -62,6 +72,8 @@ module.exports.ProjectDocumentsController_archiveProjectDocument =
   module.exports.projectDocumentsController_archiveProjectDocument;
 module.exports.ProjectDocumentsController_downloadProjectDocumentFile =
   module.exports.projectDocumentsController_downloadProjectDocumentFile;
+module.exports.ProjectDocumentsController_getProjectDocumentTree =
+  module.exports.projectDocumentsController_getProjectDocumentTree;
 module.exports.ProjectDocumentsController_getProjectDocumentById =
   module.exports.projectDocumentsController_getProjectDocumentById;
 module.exports.ProjectDocumentsController_listProjectDocuments =

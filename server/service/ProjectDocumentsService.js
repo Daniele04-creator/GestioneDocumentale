@@ -33,6 +33,19 @@ exports.projectDocumentsController_downloadProjectDocumentFile = function(docume
 };
 
 /**
+ * Get project document tree
+ * Restituisce una struttura leggera package -> task con conteggi documento.
+ *
+ * projectId  ID del progetto
+ * returns inline_response_200_3
+ **/
+exports.projectDocumentsController_getProjectDocumentTree = function(projectId) {
+  return documentsService
+    .getProjectDocumentTree(projectId)
+    .catch((error) => Promise.reject(toHttpError(error)));
+};
+
+/**
  * Get project document by id
  * Restituisce il dettaglio di un documento appartenente al progetto indicato.
  *

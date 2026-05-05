@@ -61,6 +61,46 @@ async function findFileInfoByProjectAndId(projectId, documentId) {
   return result.rows[0] ? result.rows[0].file_info : undefined;
 }
 
+async function findDocumentTreeByProject(projectId) {
+  const result = await database.query(
+    `
+      SELECT
+        pr.id AS project_id,
+        pr.name AS project_name,
+        p.id AS package_id,
+        p.name AS package_name,
+        pp.id AS parent_package_id,
+        pp.name AS parent_package_name,
+        t.id AS task_id,
+        t.name AS task_name,
+        COUNT(d.id)::int AS document_count,
+        COUNT(d.id) FILTER (WHERE d.status = 'draft')::int AS draft_count,
+        COUNT(d.id) FILTER (WHERE d.status = 'in_review')::int AS in_review_count,
+        COUNT(d.id) FILTER (WHERE d.status = 'approved')::int AS approved_count,
+        COUNT(d.id) FILTER (WHERE d.status = 'archived')::int AS archived_count
+      FROM documents d
+      JOIN tasks t ON d.task_id = t.id
+      JOIN packages p ON t.package_id = p.id
+      JOIN projects pr ON p.project_id = pr.id
+      LEFT JOIN packages pp ON p.parent_package_id = pp.id
+      WHERE pr.id = $1
+      GROUP BY
+        pr.id,
+        pr.name,
+        p.id,
+        p.name,
+        pp.id,
+        pp.name,
+        t.id,
+        t.name
+      ORDER BY p.name, t.name
+    `,
+    [projectId],
+  );
+
+  return result.rows;
+}
+
 async function projectExists(projectId) {
   const result = await database.query(
     'SELECT 1 FROM projects WHERE id = $1 LIMIT 1',
@@ -299,6 +339,7 @@ module.exports = {
   findAll,
   findByProjectAndId,
   findFileInfoByProjectAndId,
+  findDocumentTreeByProject,
   projectExists,
   updateForProject,
 };
