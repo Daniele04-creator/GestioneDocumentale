@@ -8,5 +8,5 @@
     "strict": false,
     "skipLibCheck": true
   },
-  "include": ["api.ts", "demo.ts", "custom.d.ts"]
+  "include": ["demo.ts", "generated/**/*.ts"]
 }

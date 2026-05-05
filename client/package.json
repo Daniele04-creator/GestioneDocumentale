@@ -7,9 +7,6 @@
     "build": "tsc --noEmit",
     "demo": "ts-node --files demo.ts"
   },
-  "dependencies": {
-    "isomorphic-fetch": "^3.0.0"
-  },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "ts-node": "^10.9.2",

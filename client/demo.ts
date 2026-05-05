@@ -1,85 +1,116 @@
+import { client } from './generated/client.gen';
 import {
-  Configuration,
-  HealthApi,
-  ProjectDocumentsApi,
-} from './index';
+  healthControllerGetHealth,
+  projectDocumentsControllerArchiveProjectDocument,
+  projectDocumentsControllerGetProjectDocumentById,
+  projectDocumentsControllerGetProjectDocumentTree,
+  projectDocumentsControllerListProjectDocuments,
+  projectDocumentsControllerUpdateProjectDocument,
+} from './generated';
 
-const basePath = process.env.API_BASE_URL || 'http://localhost:3000';
+const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
 const projectId = 'project-001';
 const documentId = 'DOC-001';
 
-const configuration = new Configuration({ basePath });
-const fetchApi = ((requestUrl: string, init?: any) =>
-  fetch(requestUrl, init)) as any;
-const healthApi = new HealthApi(configuration, undefined, fetchApi);
-const documentsApi = new ProjectDocumentsApi(configuration, undefined, fetchApi);
+client.setConfig({ baseUrl });
 
 async function main() {
-  const health = await healthApi.healthControllerGetHealth();
+  const health = await expectSuccess(
+    healthControllerGetHealth(),
+    'health',
+  );
   console.log('health:', health.status);
 
-  const list = await documentsApi.projectDocumentsControllerListProjectDocuments(projectId);
+  const tree = await expectSuccess(
+    projectDocumentsControllerGetProjectDocumentTree({
+      path: { projectId },
+    }),
+    'document tree',
+  );
+  console.log('document tree:', tree.meta.totalDocuments);
+
+  const list = await expectSuccess(
+    projectDocumentsControllerListProjectDocuments({
+      path: { projectId },
+    }),
+    'project documents',
+  );
   console.log('project documents:', list.meta.totalDocuments);
 
-  const architetturaFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
-    undefined,
-    undefined,
-    'Architettura',
+  const architetturaFilter = await expectSuccess(
+    projectDocumentsControllerListProjectDocuments({
+      path: { projectId },
+      query: { tag: 'Architettura' },
+    }),
+    'tag Architettura',
   );
   assertDocumentsHaveTag(architetturaFilter, 'Architettura');
   console.log('tag Architettura:', architetturaFilter.meta.totalDocuments);
 
-  const qaFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
-    undefined,
-    undefined,
-    'QA',
+  const qaFilter = await expectSuccess(
+    projectDocumentsControllerListProjectDocuments({
+      path: { projectId },
+      query: { tag: 'QA' },
+    }),
+    'tag QA',
   );
   assertDocumentsHaveTag(qaFilter, 'QA');
   console.log('tag QA:', qaFilter.meta.totalDocuments);
 
-  const missingTagFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
-    undefined,
-    undefined,
-    'TagInesistente',
+  const missingTagFilter = await expectSuccess(
+    projectDocumentsControllerListProjectDocuments({
+      path: { projectId },
+      query: { tag: 'TagInesistente' },
+    }),
+    'tag TagInesistente',
   );
   assertEmptyResult(missingTagFilter, 'missing tag');
   console.log('tag TagInesistente:', missingTagFilter.meta.totalDocuments);
 
-  const ownerSearch = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
-    'Francesca',
+  const ownerSearch = await expectSuccess(
+    projectDocumentsControllerListProjectDocuments({
+      path: { projectId },
+      query: { search: 'Francesca' },
+    }),
+    'search Francesca',
   );
   assertHasDocuments(ownerSearch, 'search Francesca');
   console.log('search Francesca:', ownerSearch.meta.totalDocuments);
 
-  const apiSearch = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
-    'api',
+  const apiSearch = await expectSuccess(
+    projectDocumentsControllerListProjectDocuments({
+      path: { projectId },
+      query: { search: 'api' },
+    }),
+    'search api',
   );
   assertHasDocuments(apiSearch, 'search api');
   console.log('search api:', apiSearch.meta.totalDocuments);
 
   await expectInvalidQueryParam();
 
-  const detail = await documentsApi.projectDocumentsControllerGetProjectDocumentById(
-    documentId,
-    projectId,
+  const detail = await expectSuccess(
+    projectDocumentsControllerGetProjectDocumentById({
+      path: { projectId, documentId },
+    }),
+    'document detail',
   );
   console.log('document detail:', detail.data.id, detail.data.title);
 
-  const updated = await documentsApi.projectDocumentsControllerUpdateProjectDocument(
-    { status: 'in_review' as any },
-    documentId,
-    projectId,
+  const updated = await expectSuccess(
+    projectDocumentsControllerUpdateProjectDocument({
+      path: { projectId, documentId },
+      body: { status: 'in_review' },
+    }),
+    'update document',
   );
   console.log('updated status:', updated.data.status);
 
-  const archived = await documentsApi.projectDocumentsControllerArchiveProjectDocument(
-    documentId,
-    projectId,
+  const archived = await expectSuccess(
+    projectDocumentsControllerArchiveProjectDocument({
+      path: { projectId, documentId },
+    }),
+    'archive document',
   );
   console.log('archived status:', archived.data.status);
 
@@ -124,55 +155,51 @@ function assertHasDocuments(response: any, label: string) {
 }
 
 async function expectInvalidQueryParam() {
-  try {
-    await documentsApi.projectDocumentsControllerListProjectDocuments(
-      projectId,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      { query: { wrongParam: '1' } },
-    );
-    throw new Error('Expected 400 INVALID_QUERY_PARAM, but the request succeeded.');
-  } catch (error: any) {
-    if (error.status !== 400) {
-      throw error;
-    }
+  const response = await projectDocumentsControllerListProjectDocuments({
+    path: { projectId },
+    query: { wrongParam: '1' },
+  } as any);
 
-    const body = await error.json();
-    if (body.code !== 'INVALID_QUERY_PARAM') {
-      throw new Error(`Expected INVALID_QUERY_PARAM, got ${body.code}.`);
-    }
-    console.log('invalid query:', error.status, body.code);
-  }
+  expectError(response, 400, 'INVALID_QUERY_PARAM');
+  console.log('invalid query:', response.response?.status, response.error?.code);
 }
 
 async function expectArchivedConflict() {
-  try {
-    await documentsApi.projectDocumentsControllerUpdateProjectDocument(
-      { status: 'approved' as any },
-      documentId,
-      projectId,
-    );
-    throw new Error('Expected 409 DOCUMENT_ARCHIVED, but the request succeeded.');
-  } catch (error: any) {
-    if (error.status !== 409) {
-      throw error;
-    }
+  const response = await projectDocumentsControllerUpdateProjectDocument({
+    path: { projectId, documentId },
+    body: { status: 'approved' },
+  });
 
-    const body = await error.json();
-    console.log('archived conflict:', error.status, body.code);
+  expectError(response, 409, 'DOCUMENT_ARCHIVED');
+  console.log('archived conflict:', response.response?.status, response.error?.code);
+}
+
+async function expectSuccess<T>(
+  request: Promise<{ data?: T; error?: unknown; response?: Response }>,
+  label: string,
+) {
+  const response = await request;
+
+  if (response.error || !response.data) {
+    throw new Error(`${label} failed with status ${response.response?.status}.`);
+  }
+
+  return response.data;
+}
+
+function expectError(
+  response: { error?: any; response?: Response },
+  expectedStatus: number,
+  expectedCode: string,
+) {
+  if (response.response?.status !== expectedStatus || response.error?.code !== expectedCode) {
+    throw new Error(
+      `Expected ${expectedStatus} ${expectedCode}, got ${response.response?.status} ${response.error?.code}.`,
+    );
   }
 }
 
-main().catch(async (error: any) => {
-  if (error && typeof error.json === 'function') {
-    const body = await error.json();
-    console.error('client demo failed:', error.status, body);
-  } else {
-    console.error('client demo failed:', error);
-  }
+main().catch((error: any) => {
+  console.error('client demo failed:', error);
   process.exit(1);
 });
