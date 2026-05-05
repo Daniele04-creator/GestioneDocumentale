@@ -522,12 +522,14 @@
                             "example": null
                           },
                           "taskCount": {
-                            "type": "number",
-                            "example": 2
+                            "type": "integer",
+                            "example": 2,
+                            "minimum": 0
                           },
                           "documentCount": {
-                            "type": "number",
-                            "example": 2
+                            "type": "integer",
+                            "example": 2,
+                            "minimum": 0
                           },
                           "statusSummary": {
                             "type": "object",
@@ -539,20 +541,24 @@
                             ],
                             "properties": {
                               "draft": {
-                                "type": "number",
-                                "example": 1
+                                "type": "integer",
+                                "example": 1,
+                                "minimum": 0
                               },
                               "in_review": {
-                                "type": "number",
-                                "example": 0
+                                "type": "integer",
+                                "example": 0,
+                                "minimum": 0
                               },
                               "approved": {
-                                "type": "number",
-                                "example": 1
+                                "type": "integer",
+                                "example": 1,
+                                "minimum": 0
                               },
                               "archived": {
-                                "type": "number",
-                                "example": 0
+                                "type": "integer",
+                                "example": 0,
+                                "minimum": 0
                               }
                             }
                           },
@@ -576,8 +582,9 @@
                                   "example": "Redazione Specifica SRS"
                                 },
                                 "documentCount": {
-                                  "type": "number",
-                                  "example": 1
+                                  "type": "integer",
+                                  "example": 1,
+                                  "minimum": 0
                                 },
                                 "statusSummary": {
                                   "type": "object",
@@ -589,20 +596,24 @@
                                   ],
                                   "properties": {
                                     "draft": {
-                                      "type": "number",
-                                      "example": 1
+                                      "type": "integer",
+                                      "example": 1,
+                                      "minimum": 0
                                     },
                                     "in_review": {
-                                      "type": "number",
-                                      "example": 0
+                                      "type": "integer",
+                                      "example": 0,
+                                      "minimum": 0
                                     },
                                     "approved": {
-                                      "type": "number",
-                                      "example": 0
+                                      "type": "integer",
+                                      "example": 0,
+                                      "minimum": 0
                                     },
                                     "archived": {
-                                      "type": "number",
-                                      "example": 0
+                                      "type": "integer",
+                                      "example": 0,
+                                      "minimum": 0
                                     }
                                   }
                                 }
@@ -621,16 +632,19 @@
                       ],
                       "properties": {
                         "totalPackages": {
-                          "type": "number",
-                          "example": 1
+                          "type": "integer",
+                          "example": 1,
+                          "minimum": 0
                         },
                         "totalTasks": {
-                          "type": "number",
-                          "example": 2
+                          "type": "integer",
+                          "example": 2,
+                          "minimum": 0
                         },
                         "totalDocuments": {
-                          "type": "number",
-                          "example": 2
+                          "type": "integer",
+                          "example": 2,
+                          "minimum": 0
                         }
                       }
                     }

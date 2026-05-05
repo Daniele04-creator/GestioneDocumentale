@@ -413,10 +413,12 @@ paths:
                           nullable: true
                           example: null
                         taskCount:
-                          type: number
+                          type: integer
+                          minimum: 0
                           example: 2
                         documentCount:
-                          type: number
+                          type: integer
+                          minimum: 0
                           example: 2
                         statusSummary:
                           type: object
@@ -427,16 +429,20 @@ paths:
                             - archived
                           properties:
                             draft:
-                              type: number
+                              type: integer
+                              minimum: 0
                               example: 1
                             in_review:
-                              type: number
+                              type: integer
+                              minimum: 0
                               example: 0
                             approved:
-                              type: number
+                              type: integer
+                              minimum: 0
                               example: 1
                             archived:
-                              type: number
+                              type: integer
+                              minimum: 0
                               example: 0
                         tasks:
                           type: array
@@ -455,7 +461,8 @@ paths:
                                 type: string
                                 example: Redazione Specifica SRS
                               documentCount:
-                                type: number
+                                type: integer
+                                minimum: 0
                                 example: 1
                               statusSummary:
                                 type: object
@@ -466,16 +473,20 @@ paths:
                                   - archived
                                 properties:
                                   draft:
-                                    type: number
+                                    type: integer
+                                    minimum: 0
                                     example: 1
                                   in_review:
-                                    type: number
+                                    type: integer
+                                    minimum: 0
                                     example: 0
                                   approved:
-                                    type: number
+                                    type: integer
+                                    minimum: 0
                                     example: 0
                                   archived:
-                                    type: number
+                                    type: integer
+                                    minimum: 0
                                     example: 0
                   meta:
                     type: object
@@ -485,13 +496,16 @@ paths:
                       - totalDocuments
                     properties:
                       totalPackages:
-                        type: number
+                        type: integer
+                        minimum: 0
                         example: 1
                       totalTasks:
-                        type: number
+                        type: integer
+                        minimum: 0
                         example: 2
                       totalDocuments:
-                        type: number
+                        type: integer
+                        minimum: 0
                         example: 2
         '404':
           description: PROJECT_NOT_FOUND
