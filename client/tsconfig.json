@@ -6,7 +6,8 @@
     "lib": ["ES2020", "DOM"],
     "esModuleInterop": true,
     "strict": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node"]
   },
   "include": ["api.ts", "configuration.ts", "custom.d.ts", "demo.ts", "index.ts"]
 }
