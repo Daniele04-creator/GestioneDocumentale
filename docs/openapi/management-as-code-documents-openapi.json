@@ -12,22 +12,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "status",
-                    "timestamp"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "ok"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time",
-                      "example": "2026-01-01T10:00:00.000Z"
-                    }
-                  }
+                  "$ref": "#/components/schemas/HealthResponse"
                 }
               }
             }
@@ -114,281 +99,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "project",
-                          "id",
-                          "name",
-                          "parentPackage",
-                          "taskCount",
-                          "documentCount",
-                          "statusSummary",
-                          "tasks"
-                        ],
-                        "properties": {
-                          "project": {
-                            "type": "object",
-                            "required": [
-                              "id",
-                              "name"
-                            ],
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "example": "project-001"
-                              },
-                              "name": {
-                                "type": "string",
-                                "example": "Management as Code Demo"
-                              }
-                            }
-                          },
-                          "id": {
-                            "type": "string",
-                            "example": "package-001"
-                          },
-                          "name": {
-                            "type": "string",
-                            "example": "Documentazione requisiti"
-                          },
-                          "parentPackage": {
-                            "type": "object",
-                            "nullable": true,
-                            "required": [
-                              "id",
-                              "name"
-                            ],
-                            "properties": {
-                              "id": {
-                                "type": "string",
-                                "example": "package-001"
-                              },
-                              "name": {
-                                "type": "string",
-                                "example": "Documentazione requisiti"
-                              }
-                            }
-                          },
-                          "taskCount": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "example": 1
-                          },
-                          "documentCount": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "example": 1
-                          },
-                          "statusSummary": {
-                            "type": "object",
-                            "required": [
-                              "draft",
-                              "in_review",
-                              "approved",
-                              "archived"
-                            ],
-                            "properties": {
-                              "draft": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "example": 0
-                              },
-                              "in_review": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "example": 0
-                              },
-                              "approved": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "example": 1
-                              },
-                              "archived": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "example": 0
-                              }
-                            }
-                          },
-                          "tasks": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "id",
-                                "name",
-                                "documentCount",
-                                "statusSummary",
-                                "documents"
-                              ],
-                              "properties": {
-                                "id": {
-                                  "type": "string",
-                                  "example": "task-001"
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "example": "Redazione Specifica SRS"
-                                },
-                                "documentCount": {
-                                  "type": "integer",
-                                  "minimum": 0,
-                                  "example": 1
-                                },
-                                "statusSummary": {
-                                  "type": "object",
-                                  "required": [
-                                    "draft",
-                                    "in_review",
-                                    "approved",
-                                    "archived"
-                                  ],
-                                  "properties": {
-                                    "draft": {
-                                      "type": "integer",
-                                      "minimum": 0,
-                                      "example": 0
-                                    },
-                                    "in_review": {
-                                      "type": "integer",
-                                      "minimum": 0,
-                                      "example": 0
-                                    },
-                                    "approved": {
-                                      "type": "integer",
-                                      "minimum": 0,
-                                      "example": 1
-                                    },
-                                    "archived": {
-                                      "type": "integer",
-                                      "minimum": 0,
-                                      "example": 0
-                                    }
-                                  }
-                                },
-                                "documents": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "required": [
-                                      "id",
-                                      "title",
-                                      "status",
-                                      "version",
-                                      "updatedAt",
-                                      "owner",
-                                      "tags"
-                                    ],
-                                    "properties": {
-                                      "id": {
-                                        "type": "string",
-                                        "example": "DOC-001"
-                                      },
-                                      "title": {
-                                        "type": "string",
-                                        "example": "Specifica SRS"
-                                      },
-                                      "description": {
-                                        "type": "string",
-                                        "example": "Documento dei requisiti software"
-                                      },
-                                      "status": {
-                                        "type": "string",
-                                        "enum": [
-                                          "draft",
-                                          "in_review",
-                                          "approved",
-                                          "archived"
-                                        ],
-                                        "example": "approved"
-                                      },
-                                      "version": {
-                                        "type": "integer",
-                                        "minimum": 1,
-                                        "example": 1
-                                      },
-                                      "updatedAt": {
-                                        "type": "string",
-                                        "format": "date-time",
-                                        "nullable": true,
-                                        "example": null
-                                      },
-                                      "owner": {
-                                        "type": "object",
-                                        "required": [
-                                          "id",
-                                          "name"
-                                        ],
-                                        "properties": {
-                                          "id": {
-                                            "type": "string",
-                                            "example": "owner-001"
-                                          },
-                                          "name": {
-                                            "type": "string",
-                                            "example": "Francesca R"
-                                          }
-                                        }
-                                      },
-                                      "tags": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "object",
-                                          "required": [
-                                            "name"
-                                          ],
-                                          "properties": {
-                                            "name": {
-                                              "type": "string",
-                                              "example": "Architettura"
-                                            }
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "required": [
-                        "totalPackages",
-                        "totalTasks",
-                        "totalDocuments"
-                      ],
-                      "properties": {
-                        "totalPackages": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "example": 1
-                        },
-                        "totalTasks": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "example": 1
-                        },
-                        "totalDocuments": {
-                          "type": "integer",
-                          "minimum": 0,
-                          "example": 1
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/DocumentHomeResponse"
                 }
               }
             }
@@ -398,21 +109,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "INVALID_QUERY_PARAM": {
@@ -431,21 +128,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "PROJECT_NOT_FOUND": {
@@ -489,166 +172,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "id",
-                          "name",
-                          "parentPackage",
-                          "taskCount",
-                          "documentCount",
-                          "statusSummary",
-                          "tasks"
-                        ],
-                        "properties": {
-                          "id": {
-                            "type": "string",
-                            "example": "package-001"
-                          },
-                          "name": {
-                            "type": "string",
-                            "example": "Documentazione requisiti"
-                          },
-                          "parentPackage": {
-                            "nullable": true,
-                            "example": null
-                          },
-                          "taskCount": {
-                            "type": "integer",
-                            "example": 2,
-                            "minimum": 0
-                          },
-                          "documentCount": {
-                            "type": "integer",
-                            "example": 2,
-                            "minimum": 0
-                          },
-                          "statusSummary": {
-                            "type": "object",
-                            "required": [
-                              "draft",
-                              "in_review",
-                              "approved",
-                              "archived"
-                            ],
-                            "properties": {
-                              "draft": {
-                                "type": "integer",
-                                "example": 1,
-                                "minimum": 0
-                              },
-                              "in_review": {
-                                "type": "integer",
-                                "example": 0,
-                                "minimum": 0
-                              },
-                              "approved": {
-                                "type": "integer",
-                                "example": 1,
-                                "minimum": 0
-                              },
-                              "archived": {
-                                "type": "integer",
-                                "example": 0,
-                                "minimum": 0
-                              }
-                            }
-                          },
-                          "tasks": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "required": [
-                                "id",
-                                "name",
-                                "documentCount",
-                                "statusSummary"
-                              ],
-                              "properties": {
-                                "id": {
-                                  "type": "string",
-                                  "example": "task-001"
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "example": "Redazione Specifica SRS"
-                                },
-                                "documentCount": {
-                                  "type": "integer",
-                                  "example": 1,
-                                  "minimum": 0
-                                },
-                                "statusSummary": {
-                                  "type": "object",
-                                  "required": [
-                                    "draft",
-                                    "in_review",
-                                    "approved",
-                                    "archived"
-                                  ],
-                                  "properties": {
-                                    "draft": {
-                                      "type": "integer",
-                                      "example": 1,
-                                      "minimum": 0
-                                    },
-                                    "in_review": {
-                                      "type": "integer",
-                                      "example": 0,
-                                      "minimum": 0
-                                    },
-                                    "approved": {
-                                      "type": "integer",
-                                      "example": 0,
-                                      "minimum": 0
-                                    },
-                                    "archived": {
-                                      "type": "integer",
-                                      "example": 0,
-                                      "minimum": 0
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "required": [
-                        "totalPackages",
-                        "totalTasks",
-                        "totalDocuments"
-                      ],
-                      "properties": {
-                        "totalPackages": {
-                          "type": "integer",
-                          "example": 1,
-                          "minimum": 0
-                        },
-                        "totalTasks": {
-                          "type": "integer",
-                          "example": 2,
-                          "minimum": 0
-                        },
-                        "totalDocuments": {
-                          "type": "integer",
-                          "example": 2,
-                          "minimum": 0
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/DocumentTreeResponse"
                 }
               }
             }
@@ -658,21 +182,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "PROJECT_NOT_FOUND": {
@@ -740,21 +250,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "INVALID_DOCUMENT_ID": {
@@ -773,21 +269,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "PROJECT_NOT_FOUND": {
@@ -853,201 +335,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "status",
-                        "project",
-                        "package",
-                        "parentPackage",
-                        "task",
-                        "owner",
-                        "fileInfo",
-                        "version",
-                        "createdAt",
-                        "updatedAt",
-                        "archivedAt",
-                        "tags"
-                      ],
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "example": "DOC-001"
-                        },
-                        "title": {
-                          "type": "string",
-                          "example": "Specifica SRS"
-                        },
-                        "description": {
-                          "type": "string",
-                          "example": "Documento dei requisiti software"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "draft",
-                            "in_review",
-                            "approved",
-                            "archived"
-                          ],
-                          "example": "approved"
-                        },
-                        "project": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "project-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Management as Code Demo"
-                            }
-                          }
-                        },
-                        "package": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "package-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Documentazione requisiti"
-                            }
-                          }
-                        },
-                        "parentPackage": {
-                          "type": "object",
-                          "nullable": true,
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "package-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Documentazione requisiti"
-                            }
-                          }
-                        },
-                        "task": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "task-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Redazione Specifica SRS"
-                            }
-                          }
-                        },
-                        "owner": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "owner-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Francesca R"
-                            }
-                          }
-                        },
-                        "fileInfo": {
-                          "type": "object",
-                          "required": [
-                            "fileName",
-                            "mimeType",
-                            "sizeBytes"
-                          ],
-                          "properties": {
-                            "fileName": {
-                              "type": "string",
-                              "example": "documento.txt"
-                            },
-                            "mimeType": {
-                              "type": "string",
-                              "example": "text/plain"
-                            },
-                            "sizeBytes": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "example": 1234
-                            }
-                          }
-                        },
-                        "version": {
-                          "type": "integer",
-                          "minimum": 1,
-                          "example": 1
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "example": "2026-01-01T10:00:00.000Z"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true,
-                          "example": null
-                        },
-                        "archivedAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true,
-                          "example": null
-                        },
-                        "tags": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "name"
-                            ],
-                            "properties": {
-                              "name": {
-                                "type": "string",
-                                "example": "Architettura"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/DocumentDetailResponse"
                 }
               }
             }
@@ -1057,21 +345,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "INVALID_DOCUMENT_ID": {
@@ -1090,21 +364,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "PROJECT_NOT_FOUND": {
@@ -1160,27 +420,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "example": "Nuovo titolo"
-                  },
-                  "description": {
-                    "type": "string",
-                    "example": "Nuova descrizione"
-                  },
-                  "status": {
-                    "type": "string",
-                    "enum": [
-                      "draft",
-                      "in_review",
-                      "approved"
-                    ],
-                    "example": "in_review"
-                  }
-                }
+                "$ref": "#/components/schemas/UpdateDocumentRequest"
               }
             }
           }
@@ -1191,201 +431,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "status",
-                        "project",
-                        "package",
-                        "parentPackage",
-                        "task",
-                        "owner",
-                        "fileInfo",
-                        "version",
-                        "createdAt",
-                        "updatedAt",
-                        "archivedAt",
-                        "tags"
-                      ],
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "example": "DOC-001"
-                        },
-                        "title": {
-                          "type": "string",
-                          "example": "Specifica SRS"
-                        },
-                        "description": {
-                          "type": "string",
-                          "example": "Documento dei requisiti software"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "draft",
-                            "in_review",
-                            "approved",
-                            "archived"
-                          ],
-                          "example": "approved"
-                        },
-                        "project": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "project-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Management as Code Demo"
-                            }
-                          }
-                        },
-                        "package": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "package-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Documentazione requisiti"
-                            }
-                          }
-                        },
-                        "parentPackage": {
-                          "type": "object",
-                          "nullable": true,
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "package-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Documentazione requisiti"
-                            }
-                          }
-                        },
-                        "task": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "task-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Redazione Specifica SRS"
-                            }
-                          }
-                        },
-                        "owner": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "owner-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Francesca R"
-                            }
-                          }
-                        },
-                        "fileInfo": {
-                          "type": "object",
-                          "required": [
-                            "fileName",
-                            "mimeType",
-                            "sizeBytes"
-                          ],
-                          "properties": {
-                            "fileName": {
-                              "type": "string",
-                              "example": "documento.txt"
-                            },
-                            "mimeType": {
-                              "type": "string",
-                              "example": "text/plain"
-                            },
-                            "sizeBytes": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "example": 1234
-                            }
-                          }
-                        },
-                        "version": {
-                          "type": "integer",
-                          "minimum": 1,
-                          "example": 1
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "example": "2026-01-01T10:00:00.000Z"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true,
-                          "example": null
-                        },
-                        "archivedAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true,
-                          "example": null
-                        },
-                        "tags": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "name"
-                            ],
-                            "properties": {
-                              "name": {
-                                "type": "string",
-                                "example": "Architettura"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/DocumentDetailResponse"
                 }
               }
             }
@@ -1395,21 +441,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "INVALID_DOCUMENT_ID": {
@@ -1435,21 +467,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "PROJECT_NOT_FOUND": {
@@ -1475,21 +493,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "DOCUMENT_ARCHIVED": {
@@ -1539,201 +543,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "data"
-                  ],
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "status",
-                        "project",
-                        "package",
-                        "parentPackage",
-                        "task",
-                        "owner",
-                        "fileInfo",
-                        "version",
-                        "createdAt",
-                        "updatedAt",
-                        "archivedAt",
-                        "tags"
-                      ],
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "example": "DOC-001"
-                        },
-                        "title": {
-                          "type": "string",
-                          "example": "Specifica SRS"
-                        },
-                        "description": {
-                          "type": "string",
-                          "example": "Documento dei requisiti software"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "draft",
-                            "in_review",
-                            "approved",
-                            "archived"
-                          ],
-                          "example": "approved"
-                        },
-                        "project": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "project-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Management as Code Demo"
-                            }
-                          }
-                        },
-                        "package": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "package-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Documentazione requisiti"
-                            }
-                          }
-                        },
-                        "parentPackage": {
-                          "type": "object",
-                          "nullable": true,
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "package-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Documentazione requisiti"
-                            }
-                          }
-                        },
-                        "task": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "task-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Redazione Specifica SRS"
-                            }
-                          }
-                        },
-                        "owner": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "owner-001"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Francesca R"
-                            }
-                          }
-                        },
-                        "fileInfo": {
-                          "type": "object",
-                          "required": [
-                            "fileName",
-                            "mimeType",
-                            "sizeBytes"
-                          ],
-                          "properties": {
-                            "fileName": {
-                              "type": "string",
-                              "example": "documento.txt"
-                            },
-                            "mimeType": {
-                              "type": "string",
-                              "example": "text/plain"
-                            },
-                            "sizeBytes": {
-                              "type": "integer",
-                              "minimum": 0,
-                              "example": 1234
-                            }
-                          }
-                        },
-                        "version": {
-                          "type": "integer",
-                          "minimum": 1,
-                          "example": 1
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "example": "2026-01-01T10:00:00.000Z"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true,
-                          "example": null
-                        },
-                        "archivedAt": {
-                          "type": "string",
-                          "format": "date-time",
-                          "nullable": true,
-                          "example": null
-                        },
-                        "tags": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "name"
-                            ],
-                            "properties": {
-                              "name": {
-                                "type": "string",
-                                "example": "Architettura"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/DocumentDetailResponse"
                 }
               }
             }
@@ -1743,21 +553,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "INVALID_DOCUMENT_ID": {
@@ -1776,21 +572,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "code",
-                    "message"
-                  ],
-                  "properties": {
-                    "code": {
-                      "type": "string",
-                      "example": "ERROR_CODE"
-                    },
-                    "message": {
-                      "type": "string",
-                      "example": "Clear error message."
-                    }
-                  }
+                  "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
                   "PROJECT_NOT_FOUND": {
@@ -1840,5 +622,617 @@
       "url": "http://localhost:3000",
       "description": "Local development server"
     }
-  ]
+  ],
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "timestamp"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": false,
+            "example": "2026-01-01T10:00:00.000Z"
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "ERROR_CODE"
+          },
+          "message": {
+            "type": "string",
+            "example": "Clear error message."
+          }
+        }
+      },
+      "DocumentStatusSummary": {
+        "type": "object",
+        "required": [
+          "draft",
+          "in_review",
+          "approved",
+          "archived"
+        ],
+        "properties": {
+          "draft": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 0
+          },
+          "in_review": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 0
+          },
+          "approved": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "archived": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 0
+          }
+        }
+      },
+      "DocumentTag": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Architettura"
+          }
+        }
+      },
+      "DocumentOwner": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "owner-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Francesca R"
+          }
+        }
+      },
+      "ProjectRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "project-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Management as Code Demo"
+          }
+        }
+      },
+      "PackageRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "package-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Documentazione requisiti"
+          }
+        }
+      },
+      "ParentPackageRef": {
+        "type": "object",
+        "nullable": true,
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "package-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Documentazione requisiti"
+          }
+        },
+        "example": null
+      },
+      "TaskRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "task-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Redazione Specifica SRS"
+          }
+        }
+      },
+      "FileInfo": {
+        "type": "object",
+        "required": [
+          "fileName",
+          "mimeType",
+          "sizeBytes"
+        ],
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "example": "project-plan.txt"
+          },
+          "mimeType": {
+            "type": "string",
+            "example": "text/plain"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 136
+          }
+        }
+      },
+      "DocumentListItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "version",
+          "updatedAt",
+          "owner",
+          "tags"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "DOC-001"
+          },
+          "title": {
+            "type": "string",
+            "example": "Specifica SRS"
+          },
+          "description": {
+            "type": "string",
+            "example": "Documento dei requisiti software"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "approved",
+              "archived"
+            ],
+            "example": "approved"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "owner": {
+            "$ref": "#/components/schemas/DocumentOwner"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentTag"
+            }
+          }
+        }
+      },
+      "DocumentDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "project",
+          "package",
+          "parentPackage",
+          "task",
+          "owner",
+          "fileInfo",
+          "version",
+          "createdAt",
+          "updatedAt",
+          "archivedAt",
+          "tags"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "DOC-001"
+          },
+          "title": {
+            "type": "string",
+            "example": "Specifica SRS"
+          },
+          "description": {
+            "type": "string",
+            "example": "Documento dei requisiti software"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "approved",
+              "archived"
+            ],
+            "example": "approved"
+          },
+          "project": {
+            "$ref": "#/components/schemas/ProjectRef"
+          },
+          "package": {
+            "$ref": "#/components/schemas/PackageRef"
+          },
+          "parentPackage": {
+            "$ref": "#/components/schemas/ParentPackageRef"
+          },
+          "task": {
+            "$ref": "#/components/schemas/TaskRef"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/DocumentOwner"
+          },
+          "fileInfo": {
+            "$ref": "#/components/schemas/FileInfo"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": false,
+            "example": "2026-01-01T10:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentTag"
+            }
+          }
+        }
+      },
+      "DocumentDetailResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DocumentDetail"
+          }
+        }
+      },
+      "DocumentTaskGroup": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "documentCount",
+          "statusSummary",
+          "documents"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "task-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Redazione Specifica SRS"
+          },
+          "documentCount": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "statusSummary": {
+            "$ref": "#/components/schemas/DocumentStatusSummary"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentListItem"
+            }
+          }
+        }
+      },
+      "DocumentPackageGroup": {
+        "type": "object",
+        "required": [
+          "project",
+          "id",
+          "name",
+          "parentPackage",
+          "taskCount",
+          "documentCount",
+          "statusSummary",
+          "tasks"
+        ],
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/ProjectRef"
+          },
+          "id": {
+            "type": "string",
+            "example": "package-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Documentazione requisiti"
+          },
+          "parentPackage": {
+            "$ref": "#/components/schemas/ParentPackageRef"
+          },
+          "taskCount": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "documentCount": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "statusSummary": {
+            "$ref": "#/components/schemas/DocumentStatusSummary"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentTaskGroup"
+            }
+          }
+        }
+      },
+      "DocumentHomeMeta": {
+        "type": "object",
+        "required": [
+          "totalPackages",
+          "totalTasks",
+          "totalDocuments"
+        ],
+        "properties": {
+          "totalPackages": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "totalTasks": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "totalDocuments": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          }
+        }
+      },
+      "DocumentHomeResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentPackageGroup"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/DocumentHomeMeta"
+          }
+        }
+      },
+      "DocumentTreeTask": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "documentCount",
+          "statusSummary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "task-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Redazione Specifica SRS"
+          },
+          "documentCount": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "statusSummary": {
+            "$ref": "#/components/schemas/DocumentStatusSummary"
+          }
+        }
+      },
+      "DocumentTreePackage": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "parentPackage",
+          "taskCount",
+          "documentCount",
+          "statusSummary",
+          "tasks"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "package-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Documentazione requisiti"
+          },
+          "parentPackage": {
+            "$ref": "#/components/schemas/ParentPackageRef"
+          },
+          "taskCount": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 2
+          },
+          "documentCount": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 2
+          },
+          "statusSummary": {
+            "$ref": "#/components/schemas/DocumentStatusSummary"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentTreeTask"
+            }
+          }
+        }
+      },
+      "DocumentTreeMeta": {
+        "type": "object",
+        "required": [
+          "totalPackages",
+          "totalTasks",
+          "totalDocuments"
+        ],
+        "properties": {
+          "totalPackages": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 1
+          },
+          "totalTasks": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 2
+          },
+          "totalDocuments": {
+            "type": "integer",
+            "minimum": 0,
+            "example": 2
+          }
+        }
+      },
+      "DocumentTreeResponse": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentTreePackage"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/DocumentTreeMeta"
+          }
+        }
+      },
+      "UpdateDocumentRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Nuovo titolo"
+          },
+          "description": {
+            "type": "string",
+            "example": "Nuova descrizione"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "approved"
+            ],
+            "example": "in_review"
+          }
+        }
+      }
+    }
+  }
 }

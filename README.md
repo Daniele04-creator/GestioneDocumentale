@@ -65,6 +65,7 @@ Il server operativo locale del prototipo si trova in `server/` ed espone le API 
 
 ```text
 GET    /api/v1/health
+GET    /api/v1/projects/{projectId}/document-tree
 GET    /api/v1/projects/{projectId}/documents
 GET    /api/v1/projects/{projectId}/documents/{documentId}
 GET    /api/v1/projects/{projectId}/documents/{documentId}/file
@@ -81,6 +82,18 @@ http://localhost:3000/docs
 Il client in `client/` e' un client TypeScript Fetch generato da OpenAPI e contiene uno script demo che chiama il server locale.
 
 Nota: il server in `server/` e' un mock/prototipo operativo basato su OpenAPI. Non e' production-ready e non va trattato come backend definitivo. Il backend reale futuro del progetto Management as Code resta da allineare con le scelte del team e potra' essere implementato in NestJS.
+
+## Flusso home documentale
+
+La home documentale usa un caricamento progressivo:
+
+1. all'apertura, il frontend chiama `GET /api/v1/projects/{projectId}/document-tree`;
+2. la UI mostra package e task con `documentCount`, `taskCount` e `statusSummary`;
+3. quando l'utente espande un package, il frontend chiama `GET /api/v1/projects/{projectId}/documents?packageId=...`;
+4. quando l'utente espande una task, il frontend chiama `GET /api/v1/projects/{projectId}/documents?taskId=...`;
+5. per filtri globali come `tag`, `status` e `search`, il frontend usa `GET /api/v1/projects/{projectId}/documents` con query params.
+
+In questo modo la pagina carica subito una struttura leggera e recupera i documenti completi solo quando servono.
 
 ## Database
 
