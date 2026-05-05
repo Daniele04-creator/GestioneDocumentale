@@ -1,0 +1,1637 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "description": "Verifica che il backend sia avviato.",
+        "operationId": "HealthController_getHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Backend is running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "timestamp"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2026-01-01T10:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/documents": {
+      "get": {
+        "description": "Restituisce la home documentale del progetto, con documenti raggruppati per package e task e filtrabili tramite query parameters.",
+        "operationId": "ProjectDocumentsController_listProjectDocuments",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "srs"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "draft",
+                "in_review",
+                "approved",
+                "archived"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Architettura"
+            }
+          },
+          {
+            "name": "ownerId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "owner-001"
+            }
+          },
+          {
+            "name": "taskId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "task-001"
+            }
+          },
+          {
+            "name": "packageId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "package-001"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "ID del progetto",
+            "schema": {
+              "example": "project-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project document home returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "project",
+                          "id",
+                          "name",
+                          "parentPackage",
+                          "taskCount",
+                          "documentCount",
+                          "statusSummary",
+                          "tasks"
+                        ],
+                        "properties": {
+                          "project": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "project-001"
+                              },
+                              "name": {
+                                "type": "string",
+                                "example": "Management as Code Demo"
+                              }
+                            }
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "package-001"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Documentazione requisiti"
+                          },
+                          "parentPackage": {
+                            "type": "object",
+                            "nullable": true,
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "package-001"
+                              },
+                              "name": {
+                                "type": "string",
+                                "example": "Documentazione requisiti"
+                              }
+                            }
+                          },
+                          "taskCount": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "example": 1
+                          },
+                          "documentCount": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "example": 1
+                          },
+                          "statusSummary": {
+                            "type": "object",
+                            "required": [
+                              "draft",
+                              "in_review",
+                              "approved",
+                              "archived"
+                            ],
+                            "properties": {
+                              "draft": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "example": 0
+                              },
+                              "in_review": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "example": 0
+                              },
+                              "approved": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "example": 1
+                              },
+                              "archived": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "example": 0
+                              }
+                            }
+                          },
+                          "tasks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "name",
+                                "documentCount",
+                                "statusSummary",
+                                "documents"
+                              ],
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "example": "task-001"
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "example": "Redazione Specifica SRS"
+                                },
+                                "documentCount": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "example": 1
+                                },
+                                "statusSummary": {
+                                  "type": "object",
+                                  "required": [
+                                    "draft",
+                                    "in_review",
+                                    "approved",
+                                    "archived"
+                                  ],
+                                  "properties": {
+                                    "draft": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "example": 0
+                                    },
+                                    "in_review": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "example": 0
+                                    },
+                                    "approved": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "example": 1
+                                    },
+                                    "archived": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "example": 0
+                                    }
+                                  }
+                                },
+                                "documents": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "required": [
+                                      "id",
+                                      "title",
+                                      "status",
+                                      "version",
+                                      "updatedAt",
+                                      "owner",
+                                      "tags"
+                                    ],
+                                    "properties": {
+                                      "id": {
+                                        "type": "string",
+                                        "example": "DOC-001"
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "example": "Specifica SRS"
+                                      },
+                                      "description": {
+                                        "type": "string",
+                                        "example": "Documento dei requisiti software"
+                                      },
+                                      "status": {
+                                        "type": "string",
+                                        "enum": [
+                                          "draft",
+                                          "in_review",
+                                          "approved",
+                                          "archived"
+                                        ],
+                                        "example": "approved"
+                                      },
+                                      "version": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "example": 1
+                                      },
+                                      "updatedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "nullable": true,
+                                        "example": null
+                                      },
+                                      "owner": {
+                                        "type": "object",
+                                        "required": [
+                                          "id",
+                                          "name"
+                                        ],
+                                        "properties": {
+                                          "id": {
+                                            "type": "string",
+                                            "example": "owner-001"
+                                          },
+                                          "name": {
+                                            "type": "string",
+                                            "example": "Francesca R"
+                                          }
+                                        }
+                                      },
+                                      "tags": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "required": [
+                                            "id",
+                                            "name"
+                                          ],
+                                          "properties": {
+                                            "id": {
+                                              "type": "string",
+                                              "example": "tag-architettura"
+                                            },
+                                            "name": {
+                                              "type": "string",
+                                              "example": "Architettura"
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "required": [
+                        "totalPackages",
+                        "totalTasks",
+                        "totalDocuments"
+                      ],
+                      "properties": {
+                        "totalPackages": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "example": 1
+                        },
+                        "totalTasks": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "example": 1
+                        },
+                        "totalDocuments": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "example": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_QUERY_PARAM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "INVALID_QUERY_PARAM": {
+                    "summary": "INVALID_QUERY_PARAM",
+                    "value": {
+                      "code": "INVALID_QUERY_PARAM",
+                      "message": "Parametro query non valido."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PROJECT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "PROJECT_NOT_FOUND": {
+                    "summary": "PROJECT_NOT_FOUND",
+                    "value": {
+                      "code": "PROJECT_NOT_FOUND",
+                      "message": "Project not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List project documents",
+        "tags": [
+          "Project documents"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/documents/{documentId}/file": {
+      "get": {
+        "description": "Scarica il file associato al documento.",
+        "operationId": "ProjectDocumentsController_downloadProjectDocumentFile",
+        "parameters": [
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "description": "ID del documento nel formato DOC-001",
+            "schema": {
+              "type": "string",
+              "pattern": "^DOC-[0-9]{3}$"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "ID del progetto",
+            "schema": {
+              "example": "project-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File binario o testuale associato al documento.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_DOCUMENT_ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "INVALID_DOCUMENT_ID": {
+                    "summary": "INVALID_DOCUMENT_ID",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_ID",
+                      "message": "Invalid document id."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PROJECT_NOT_FOUND, DOCUMENT_NOT_FOUND or DOCUMENT_FILE_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "PROJECT_NOT_FOUND": {
+                    "summary": "PROJECT_NOT_FOUND",
+                    "value": {
+                      "code": "PROJECT_NOT_FOUND",
+                      "message": "Project not found."
+                    }
+                  },
+                  "DOCUMENT_NOT_FOUND": {
+                    "summary": "DOCUMENT_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_NOT_FOUND",
+                      "message": "Document not found."
+                    }
+                  },
+                  "DOCUMENT_FILE_NOT_FOUND": {
+                    "summary": "DOCUMENT_FILE_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_FILE_NOT_FOUND",
+                      "message": "Document file not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Download project document file",
+        "tags": [
+          "Project documents"
+        ]
+      }
+    },
+    "/api/v1/projects/{projectId}/documents/{documentId}": {
+      "get": {
+        "description": "Restituisce il dettaglio di un documento appartenente al progetto indicato.",
+        "operationId": "ProjectDocumentsController_getProjectDocumentById",
+        "parameters": [
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "description": "ID del documento nel formato DOC-001",
+            "schema": {
+              "type": "string",
+              "pattern": "^DOC-[0-9]{3}$"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "ID del progetto",
+            "schema": {
+              "example": "project-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document detail returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "status",
+                        "project",
+                        "package",
+                        "parentPackage",
+                        "task",
+                        "owner",
+                        "fileInfo",
+                        "version",
+                        "createdAt",
+                        "updatedAt",
+                        "archivedAt",
+                        "tags"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "DOC-001"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Specifica SRS"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Documento dei requisiti software"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "in_review",
+                            "approved",
+                            "archived"
+                          ],
+                          "example": "approved"
+                        },
+                        "project": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "project-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Management as Code Demo"
+                            }
+                          }
+                        },
+                        "package": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "package-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Documentazione requisiti"
+                            }
+                          }
+                        },
+                        "parentPackage": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "package-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Documentazione requisiti"
+                            }
+                          }
+                        },
+                        "task": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "task-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Redazione Specifica SRS"
+                            }
+                          }
+                        },
+                        "owner": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "owner-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Francesca R"
+                            }
+                          }
+                        },
+                        "fileInfo": {
+                          "type": "object",
+                          "required": [
+                            "fileName",
+                            "mimeType",
+                            "sizeBytes"
+                          ],
+                          "properties": {
+                            "fileName": {
+                              "type": "string",
+                              "example": "documento.txt"
+                            },
+                            "mimeType": {
+                              "type": "string",
+                              "example": "text/plain"
+                            },
+                            "sizeBytes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "example": 1234
+                            }
+                          }
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "example": 1
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2026-01-01T10:00:00.000Z"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "archivedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "tag-architettura"
+                              },
+                              "name": {
+                                "type": "string",
+                                "example": "Architettura"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_DOCUMENT_ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "INVALID_DOCUMENT_ID": {
+                    "summary": "INVALID_DOCUMENT_ID",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_ID",
+                      "message": "Invalid document id."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PROJECT_NOT_FOUND or DOCUMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "PROJECT_NOT_FOUND": {
+                    "summary": "PROJECT_NOT_FOUND",
+                    "value": {
+                      "code": "PROJECT_NOT_FOUND",
+                      "message": "Project not found."
+                    }
+                  },
+                  "DOCUMENT_NOT_FOUND": {
+                    "summary": "DOCUMENT_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_NOT_FOUND",
+                      "message": "Document not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get project document by id",
+        "tags": [
+          "Project documents"
+        ]
+      },
+      "patch": {
+        "description": "Aggiorna i campi modificabili di un documento non archiviato.",
+        "operationId": "ProjectDocumentsController_updateProjectDocument",
+        "parameters": [
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "description": "ID del documento nel formato DOC-001",
+            "schema": {
+              "type": "string",
+              "pattern": "^DOC-[0-9]{3}$"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "ID del progetto",
+            "schema": {
+              "example": "project-001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Nuovo titolo"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Nuova descrizione"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "in_review",
+                      "approved"
+                    ],
+                    "example": "in_review"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated document detail returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "status",
+                        "project",
+                        "package",
+                        "parentPackage",
+                        "task",
+                        "owner",
+                        "fileInfo",
+                        "version",
+                        "createdAt",
+                        "updatedAt",
+                        "archivedAt",
+                        "tags"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "DOC-001"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Specifica SRS"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Documento dei requisiti software"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "in_review",
+                            "approved",
+                            "archived"
+                          ],
+                          "example": "approved"
+                        },
+                        "project": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "project-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Management as Code Demo"
+                            }
+                          }
+                        },
+                        "package": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "package-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Documentazione requisiti"
+                            }
+                          }
+                        },
+                        "parentPackage": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "package-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Documentazione requisiti"
+                            }
+                          }
+                        },
+                        "task": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "task-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Redazione Specifica SRS"
+                            }
+                          }
+                        },
+                        "owner": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "owner-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Francesca R"
+                            }
+                          }
+                        },
+                        "fileInfo": {
+                          "type": "object",
+                          "required": [
+                            "fileName",
+                            "mimeType",
+                            "sizeBytes"
+                          ],
+                          "properties": {
+                            "fileName": {
+                              "type": "string",
+                              "example": "documento.txt"
+                            },
+                            "mimeType": {
+                              "type": "string",
+                              "example": "text/plain"
+                            },
+                            "sizeBytes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "example": 1234
+                            }
+                          }
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "example": 1
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2026-01-01T10:00:00.000Z"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "archivedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "tag-architettura"
+                              },
+                              "name": {
+                                "type": "string",
+                                "example": "Architettura"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_DOCUMENT_ID or INVALID_DOCUMENT_PATCH",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "INVALID_DOCUMENT_ID": {
+                    "summary": "INVALID_DOCUMENT_ID",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_ID",
+                      "message": "Invalid document id."
+                    }
+                  },
+                  "INVALID_DOCUMENT_PATCH": {
+                    "summary": "INVALID_DOCUMENT_PATCH",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_PATCH",
+                      "message": "Invalid document patch."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PROJECT_NOT_FOUND or DOCUMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "PROJECT_NOT_FOUND": {
+                    "summary": "PROJECT_NOT_FOUND",
+                    "value": {
+                      "code": "PROJECT_NOT_FOUND",
+                      "message": "Project not found."
+                    }
+                  },
+                  "DOCUMENT_NOT_FOUND": {
+                    "summary": "DOCUMENT_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_NOT_FOUND",
+                      "message": "Document not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DOCUMENT_ARCHIVED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "DOCUMENT_ARCHIVED": {
+                    "summary": "DOCUMENT_ARCHIVED",
+                    "value": {
+                      "code": "DOCUMENT_ARCHIVED",
+                      "message": "Il documento archiviato non può essere modificato."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update project document",
+        "tags": [
+          "Project documents"
+        ]
+      },
+      "delete": {
+        "description": "Archivia logicamente il documento impostando status archived e archivedAt.",
+        "operationId": "ProjectDocumentsController_archiveProjectDocument",
+        "parameters": [
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "description": "ID del documento nel formato DOC-001",
+            "schema": {
+              "type": "string",
+              "pattern": "^DOC-[0-9]{3}$"
+            }
+          },
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "description": "ID del progetto",
+            "schema": {
+              "example": "project-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived document detail returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "status",
+                        "project",
+                        "package",
+                        "parentPackage",
+                        "task",
+                        "owner",
+                        "fileInfo",
+                        "version",
+                        "createdAt",
+                        "updatedAt",
+                        "archivedAt",
+                        "tags"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "DOC-001"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Specifica SRS"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Documento dei requisiti software"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "in_review",
+                            "approved",
+                            "archived"
+                          ],
+                          "example": "approved"
+                        },
+                        "project": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "project-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Management as Code Demo"
+                            }
+                          }
+                        },
+                        "package": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "package-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Documentazione requisiti"
+                            }
+                          }
+                        },
+                        "parentPackage": {
+                          "type": "object",
+                          "nullable": true,
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "package-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Documentazione requisiti"
+                            }
+                          }
+                        },
+                        "task": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "task-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Redazione Specifica SRS"
+                            }
+                          }
+                        },
+                        "owner": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "name"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "owner-001"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Francesca R"
+                            }
+                          }
+                        },
+                        "fileInfo": {
+                          "type": "object",
+                          "required": [
+                            "fileName",
+                            "mimeType",
+                            "sizeBytes"
+                          ],
+                          "properties": {
+                            "fileName": {
+                              "type": "string",
+                              "example": "documento.txt"
+                            },
+                            "mimeType": {
+                              "type": "string",
+                              "example": "text/plain"
+                            },
+                            "sizeBytes": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "example": 1234
+                            }
+                          }
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "example": 1
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2026-01-01T10:00:00.000Z"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "archivedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "nullable": true,
+                          "example": null
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "tag-architettura"
+                              },
+                              "name": {
+                                "type": "string",
+                                "example": "Architettura"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_DOCUMENT_ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "INVALID_DOCUMENT_ID": {
+                    "summary": "INVALID_DOCUMENT_ID",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_ID",
+                      "message": "Invalid document id."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "PROJECT_NOT_FOUND or DOCUMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "code",
+                    "message"
+                  ],
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "example": "ERROR_CODE"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Clear error message."
+                    }
+                  }
+                },
+                "examples": {
+                  "PROJECT_NOT_FOUND": {
+                    "summary": "PROJECT_NOT_FOUND",
+                    "value": {
+                      "code": "PROJECT_NOT_FOUND",
+                      "message": "Project not found."
+                    }
+                  },
+                  "DOCUMENT_NOT_FOUND": {
+                    "summary": "DOCUMENT_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_NOT_FOUND",
+                      "message": "Document not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Archive project document",
+        "tags": [
+          "Project documents"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Management as Code Documents API",
+    "description": "API del modulo documentale project-scoped di Management as Code.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Project documents",
+      "description": ""
+    },
+    {
+      "name": "Health",
+      "description": ""
+    }
+  ],
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ]
+}

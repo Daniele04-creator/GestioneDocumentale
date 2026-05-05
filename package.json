@@ -1,0 +1,23 @@
+{
+  "name": "management-as-code-documents-api",
+  "version": "0.1.0",
+  "description": "OpenAPI-based prototype and mock server for the Management as Code documents API.",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "npm --prefix server run build && npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "start:dev": "nodemon",
+    "client:demo": "npm --prefix client run demo",
+    "test:api": "node scripts/smoke-test-api.js",
+    "db:schema": "node scripts/run-schema.js",
+    "db:seed": "node scripts/run-seed.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
