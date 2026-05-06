@@ -17,10 +17,12 @@ const UPLOAD_SOURCE_FILE = path.join(
 const CREATE_DOCUMENT_BODY = {
   subKey: SUB_KEY,
   documentKey: CREATE_DOCUMENT_KEY,
-  templateId: 'TPL-REPORT-SMOKE',
-  templateName: 'Template report smoke test',
-  title: 'Report avanzamento smoke test',
-  description: 'Documento demo registrato dallo smoke test.',
+  metadata: {
+    title: 'Report avanzamento smoke test',
+    description: 'Documento demo registrato dallo smoke test.',
+    templateId: 'TPL-REPORT-SMOKE',
+    templateName: 'Template report smoke test',
+  },
   ownerId: 'owner-001',
   status: 'draft',
   tags: ['Report', 'Progress'],
@@ -123,6 +125,7 @@ async function buildCreateDocumentForm(
   formData.append('file', new Blob([fileBuffer, fileSuffix], { type: 'text/plain' }), fileName);
   if (body.subKey !== undefined) formData.append('subKey', body.subKey);
   if (body.documentKey !== undefined) formData.append('documentKey', body.documentKey);
+  if (body.metadata !== undefined) formData.append('metadata', JSON.stringify(body.metadata));
   if (body.templateId !== undefined) formData.append('templateId', body.templateId);
   if (body.templateName !== undefined) formData.append('templateName', body.templateName);
   if (body.title !== undefined) formData.append('title', body.title);
@@ -143,6 +146,7 @@ function buildCreateDocumentFormWithoutFile(overrides = {}) {
 
   if (body.subKey !== undefined) formData.append('subKey', body.subKey);
   if (body.documentKey !== undefined) formData.append('documentKey', body.documentKey);
+  if (body.metadata !== undefined) formData.append('metadata', JSON.stringify(body.metadata));
   if (body.templateId !== undefined) formData.append('templateId', body.templateId);
   if (body.templateName !== undefined) formData.append('templateName', body.templateName);
   if (body.title !== undefined) formData.append('title', body.title);
@@ -257,8 +261,10 @@ async function main() {
     firstVersionChecksum = body.data && body.data.checksumSha256;
     assert(/^DOC-[0-9]{3,}$/.test(createdDocumentId), 'Expected generated DOC-XXX id.');
     assert(body.data.documentKey === CREATE_DOCUMENT_KEY, 'Expected created documentKey.');
-    assert(body.data.templateId === CREATE_DOCUMENT_BODY.templateId, 'Expected templateId.');
-    assert(body.data.title === CREATE_DOCUMENT_BODY.title, 'Expected created title.');
+    assert(body.data.metadata, 'Expected document metadata.');
+    assert(body.data.metadata.templateId === CREATE_DOCUMENT_BODY.metadata.templateId, 'Expected metadata.templateId.');
+    assert(body.data.metadata.title === CREATE_DOCUMENT_BODY.metadata.title, 'Expected metadata.title.');
+    assert(body.data.title === CREATE_DOCUMENT_BODY.metadata.title, 'Expected derived created title.');
     assert(body.data.status === 'draft', 'Expected default draft status.');
     assert(body.data.version === 1, 'Expected version 1 for a new documentKey.');
     assert(/^[a-f0-9]{64}$/.test(firstVersionChecksum), 'Expected SHA-256 checksum.');
@@ -276,8 +282,11 @@ async function main() {
   await runTest('POST same documentKey and same file updates metadata without new version', async () => {
     assert(createdDocumentId, 'Created document id is missing.');
     const formData = await buildCreateDocumentForm({
-      title: 'Report avanzamento smoke test aggiornato',
-      description: 'Aggiornamento metadati con stesso checksum.',
+      metadata: {
+        ...CREATE_DOCUMENT_BODY.metadata,
+        title: 'Report avanzamento smoke test aggiornato',
+        description: 'Aggiornamento metadati con stesso checksum.',
+      },
       status: undefined,
       tags: undefined,
     });
@@ -289,6 +298,10 @@ async function main() {
     );
 
     assert(body.data.id === createdDocumentId, 'Expected same logical document id.');
+    assert(
+      body.data.metadata.title === 'Report avanzamento smoke test aggiornato',
+      'Expected metadata update with same checksum.',
+    );
     assert(body.data.version === 1, 'Expected version to stay 1 with same checksum.');
     assert(body.data.checksumSha256 === firstVersionChecksum, 'Expected unchanged checksum.');
     assert(
@@ -310,8 +323,11 @@ async function main() {
     assert(createdDocumentId, 'Created document id is missing.');
     const formData = await buildCreateDocumentForm(
       {
-        title: 'Report avanzamento smoke test v2',
-        description: 'Nuova versione con contenuto file diverso.',
+        metadata: {
+          ...CREATE_DOCUMENT_BODY.metadata,
+          title: 'Report avanzamento smoke test v2',
+          description: 'Nuova versione con contenuto file diverso.',
+        },
         status: 'approved',
         tags: ['Report', 'Progress', 'Versione'],
       },
@@ -327,6 +343,7 @@ async function main() {
 
     secondVersionFileName = body.data && body.data.fileInfo && body.data.fileInfo.fileName;
     assert(body.data.id === createdDocumentId, 'Expected same logical document id.');
+    assert(body.data.metadata.title === 'Report avanzamento smoke test v2', 'Expected current metadata for version 2.');
     assert(body.data.version === 2, 'Expected version 2 with different checksum.');
     assert(body.data.status === 'approved', 'Expected updated current status.');
     assert(body.data.checksumSha256 !== firstVersionChecksum, 'Expected new checksum.');
@@ -361,6 +378,8 @@ async function main() {
     assert(createdDocument, `Expected list to contain ${createdDocumentId}.`);
     assert(createdDocument.version === 2, 'Expected list to expose current version 2.');
     assert(createdDocument.documentKey === CREATE_DOCUMENT_KEY, 'Expected list documentKey.');
+    assert(createdDocument.metadata, 'Expected list document metadata.');
+    assert(createdDocument.metadata.title === 'Report avanzamento smoke test v2', 'Expected list current metadata.');
   });
 
   await runTest('GET created document detail returns current version', async () => {
@@ -372,6 +391,8 @@ async function main() {
     );
     assert(body.data && body.data.id === createdDocumentId, `Expected data.id ${createdDocumentId}.`);
     assert(body.data.version === 2, 'Expected detail to expose current version 2.');
+    assert(body.data.metadata, 'Expected detail document metadata.');
+    assert(body.data.metadata.title === 'Report avanzamento smoke test v2', 'Expected detail current metadata.');
   });
 
   await runTest('GET current document file returns latest version', async () => {
@@ -404,7 +425,10 @@ async function main() {
   await runTest('POST documents with missing subKey returns SUB_KEY_NOT_FOUND', async () => {
     const formData = await buildCreateDocumentForm({
       subKey: 'PKG-NOT-FOUND',
-      title: 'SubKey missing smoke test',
+      metadata: {
+        ...CREATE_DOCUMENT_BODY.metadata,
+        title: 'SubKey missing smoke test',
+      },
     });
     const body = await expectJson(
       'POST',
@@ -418,7 +442,10 @@ async function main() {
   await runTest('POST documents with missing documentKey returns INVALID_DOCUMENT_PATCH', async () => {
     const formData = await buildCreateDocumentForm({
       documentKey: undefined,
-      title: 'Missing documentKey smoke test',
+      metadata: {
+        ...CREATE_DOCUMENT_BODY.metadata,
+        title: 'Missing documentKey smoke test',
+      },
     });
     const body = await expectJson(
       'POST',
@@ -436,7 +463,10 @@ async function main() {
     const formData = await buildCreateDocumentForm({
       documentKey: `${CREATE_DOCUMENT_KEY}-OWNER-NOT-FOUND`,
       ownerId: 'owner-not-found',
-      title: 'Missing owner smoke test',
+      metadata: {
+        ...CREATE_DOCUMENT_BODY.metadata,
+        title: 'Missing owner smoke test',
+      },
     });
     const body = await expectJson(
       'POST',
@@ -453,7 +483,10 @@ async function main() {
       `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
       400,
       buildCreateDocumentFormWithoutFile({
-        title: 'Unsafe file smoke test',
+        metadata: {
+          ...CREATE_DOCUMENT_BODY.metadata,
+          title: 'Unsafe file smoke test',
+        },
       }),
     );
     assert(

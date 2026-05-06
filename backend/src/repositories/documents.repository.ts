@@ -1,6 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { DataSource, type EntityManager } from "typeorm";
-import type { DocumentStatus } from "../entities/document.entity";
+import type {
+	DocumentMetadata,
+	DocumentStatus,
+} from "../entities/document.entity";
 
 export type DocumentFilters = {
 	keyType: string;
@@ -33,8 +36,7 @@ export type DocumentVersionRow = {
 export type DocumentRow = {
 	id: string;
 	documentKey: string;
-	templateId: string | null;
-	templateName: string | null;
+	metadata: DocumentMetadata;
 	title: string;
 	description?: string;
 	status: DocumentStatus;
@@ -71,8 +73,7 @@ export type DocumentTreeRow = {
 };
 
 export type UpdateDocumentChanges = {
-	title?: string;
-	description?: string;
+	metadata?: DocumentMetadata;
 	status?: DocumentStatus;
 	archivedAt?: string;
 	updatedAt?: string;
@@ -81,10 +82,7 @@ export type UpdateDocumentChanges = {
 export type CreateDocumentInput = {
 	subKey: string;
 	documentKey: string;
-	templateId?: string;
-	templateName?: string;
-	title: string;
-	description?: string;
+	metadata: DocumentMetadata;
 	ownerId: string;
 	status?: Exclude<DocumentStatus, "archived">;
 	fileInfo: InternalFileInfo;
@@ -106,12 +104,9 @@ type ExistingLogicalDocumentRow = {
 };
 
 type UpdateGeneratedDocumentFields = {
-	title: string;
-	description?: string;
+	metadata: DocumentMetadata;
 	ownerId: string;
 	status?: Exclude<DocumentStatus, "archived">;
-	templateId?: string;
-	templateName?: string;
 	updatedAt: string;
 };
 
@@ -388,12 +383,9 @@ export class DocumentsRepository {
 						manager,
 						existingDocument.id,
 						{
-							title: input.title,
-							description: input.description,
+							metadata: input.metadata,
 							ownerId: input.ownerId,
 							status: input.status,
-							templateId: input.templateId,
-							templateName: input.templateName,
 							updatedAt,
 						},
 					);
@@ -414,12 +406,9 @@ export class DocumentsRepository {
 					manager,
 					existingDocument.id,
 					{
-						title: input.title,
-						description: input.description,
+						metadata: input.metadata,
 						ownerId: input.ownerId,
 						status: input.status,
-						templateId: input.templateId,
-						templateName: input.templateName,
 						version: nextVersion,
 						fileInfo: input.fileInfo,
 						checksumSha256: input.checksumSha256,
@@ -456,11 +445,8 @@ export class DocumentsRepository {
 						key_value,
 						sub_key,
 						document_key,
-						template_id,
-						template_name,
 						owner_id,
-						title,
-						description,
+						metadata,
 						status,
 						file_info,
 						checksum_sha256,
@@ -476,15 +462,12 @@ export class DocumentsRepository {
 						$4,
 						$5,
 						$6,
-						$7,
+						$7::jsonb,
 						$8,
-						$9,
+						$9::jsonb,
 						$10,
-						$11,
-						$12::jsonb,
-						$13,
 						1,
-						$14,
+						$11,
 						NULL,
 						NULL
 					)
@@ -495,11 +478,8 @@ export class DocumentsRepository {
 					key,
 					input.subKey,
 					input.documentKey,
-					input.templateId ?? null,
-					input.templateName ?? null,
 					input.ownerId,
-					input.title,
-					input.description ?? null,
+					JSON.stringify(input.metadata),
 					input.status ?? "draft",
 					JSON.stringify(input.fileInfo),
 					input.checksumSha256,
@@ -537,8 +517,10 @@ export class DocumentsRepository {
 		const setClauses: string[] = [];
 		const values: unknown[] = [];
 
-		this.addUpdateField(setClauses, values, "title", changes.title);
-		this.addUpdateField(setClauses, values, "description", changes.description);
+		if (changes.metadata !== undefined) {
+			values.push(JSON.stringify(changes.metadata));
+			setClauses.push(`metadata = $${values.length}::jsonb`);
+		}
 		this.addUpdateField(setClauses, values, "status", changes.status);
 		this.addUpdateField(setClauses, values, "archived_at", changes.archivedAt);
 
@@ -609,27 +591,16 @@ export class DocumentsRepository {
 		documentId: string,
 		input: UpdateGeneratedDocumentFields,
 	) {
-		const setClauses = ["title = $1", "owner_id = $2", "updated_at = $3"];
-		const values: unknown[] = [input.title, input.ownerId, input.updatedAt];
-
-		this.addOptionalGeneratedField(
-			setClauses,
-			values,
-			"description",
-			input.description,
-		);
-		this.addOptionalGeneratedField(
-			setClauses,
-			values,
-			"template_id",
-			input.templateId,
-		);
-		this.addOptionalGeneratedField(
-			setClauses,
-			values,
-			"template_name",
-			input.templateName,
-		);
+		const setClauses = [
+			"metadata = $1::jsonb",
+			"owner_id = $2",
+			"updated_at = $3",
+		];
+		const values: unknown[] = [
+			JSON.stringify(input.metadata),
+			input.ownerId,
+			input.updatedAt,
+		];
 
 		if (input.status !== undefined) {
 			values.push(input.status);
@@ -654,7 +625,7 @@ export class DocumentsRepository {
 		input: UpdateGeneratedDocumentVersionFields,
 	) {
 		const setClauses = [
-			"title = $1",
+			"metadata = $1::jsonb",
 			"owner_id = $2",
 			"version = $3",
 			"file_info = $4::jsonb",
@@ -662,32 +633,13 @@ export class DocumentsRepository {
 			"updated_at = $6",
 		];
 		const values: unknown[] = [
-			input.title,
+			JSON.stringify(input.metadata),
 			input.ownerId,
 			input.version,
 			JSON.stringify(input.fileInfo),
 			input.checksumSha256,
 			input.updatedAt,
 		];
-
-		this.addOptionalGeneratedField(
-			setClauses,
-			values,
-			"description",
-			input.description,
-		);
-		this.addOptionalGeneratedField(
-			setClauses,
-			values,
-			"template_id",
-			input.templateId,
-		);
-		this.addOptionalGeneratedField(
-			setClauses,
-			values,
-			"template_name",
-			input.templateName,
-		);
 
 		if (input.status !== undefined) {
 			values.push(input.status);
@@ -704,18 +656,6 @@ export class DocumentsRepository {
 			`,
 			values,
 		);
-	}
-
-	private addOptionalGeneratedField(
-		setClauses: string[],
-		values: unknown[],
-		columnName: string,
-		value: string | undefined,
-	) {
-		if (value === undefined) return;
-
-		values.push(value === "" ? null : value);
-		setClauses.push(`${columnName} = $${values.length}`);
 	}
 
 	private async insertDocumentVersion(
@@ -838,11 +778,10 @@ export class DocumentsRepository {
 		params.push(`%${search}%`);
 		where.push(`(
 			d.id ILIKE $${params.length}
-			OR d.title ILIKE $${params.length}
-			OR d.description ILIKE $${params.length}
 			OR d.document_key ILIKE $${params.length}
-			OR d.template_id ILIKE $${params.length}
-			OR d.template_name ILIKE $${params.length}
+			OR d.metadata->>'title' ILIKE $${params.length}
+			OR d.metadata->>'templateId' ILIKE $${params.length}
+			OR d.metadata->>'templateName' ILIKE $${params.length}
 			OR d.key_type ILIKE $${params.length}
 			OR d.key_value ILIKE $${params.length}
 			OR d.sub_key ILIKE $${params.length}
@@ -906,13 +845,17 @@ export class DocumentsRepository {
 	}
 
 	private mapDocumentRow(row: Record<string, unknown>): DocumentRow {
+		const metadata = this.toDocumentMetadata(row.metadata);
+
 		return {
 			id: String(row.id),
 			documentKey: String(row.document_key),
-			templateId: row.template_id ? String(row.template_id) : null,
-			templateName: row.template_name ? String(row.template_name) : null,
-			title: String(row.title),
-			description: row.description ? String(row.description) : undefined,
+			metadata,
+			title: metadata.title,
+			description:
+				typeof metadata.description === "string"
+					? metadata.description
+					: undefined,
 			status: row.status as DocumentStatus,
 			keyType: String(row.key_type),
 			key: {
@@ -970,14 +913,26 @@ export class DocumentsRepository {
 		};
 	}
 
+	private toDocumentMetadata(value: unknown): DocumentMetadata {
+		if (!value || typeof value !== "object" || Array.isArray(value)) {
+			return { title: "" };
+		}
+
+		const metadata = value as Record<string, unknown>;
+		return {
+			...metadata,
+			title:
+				typeof metadata.title === "string"
+					? metadata.title
+					: String(metadata.title ?? ""),
+		};
+	}
+
 	private documentSelectColumnsSql() {
 		return `
 			d.id,
 			d.document_key,
-			d.template_id,
-			d.template_name,
-			d.title,
-			d.description,
+			d.metadata,
 			d.status,
 			d.file_info,
 			d.checksum_sha256,

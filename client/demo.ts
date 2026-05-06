@@ -88,10 +88,12 @@ async function main() {
       fileName: '../report-avanzamento.txt',
       subKey,
       documentKey: demoDocumentKey,
-      templateId: 'TPL-REPORT-DEMO',
-      templateName: 'Template report demo',
-      title: 'Report avanzamento client demo',
-      description: 'Documento demo registrato dal client TypeScript Fetch',
+      metadata: {
+        title: 'Report avanzamento client demo',
+        description: 'Documento demo registrato dal client TypeScript Fetch',
+        templateId: 'TPL-REPORT-DEMO',
+        templateName: 'Template report demo',
+      },
       ownerId: 'owner-001',
       status: CreateDocumentRequest.StatusEnum.Draft,
       tags: ['Report', 'Progress'],
@@ -113,10 +115,12 @@ async function main() {
       fileName: 'report-avanzamento.txt',
       subKey,
       documentKey: demoDocumentKey,
-      templateId: 'TPL-REPORT-DEMO',
-      templateName: 'Template report demo',
-      title: 'Report avanzamento client demo aggiornato',
-      description: 'Aggiornamento metadati con stesso contenuto file',
+      metadata: {
+        title: 'Report avanzamento client demo aggiornato',
+        description: 'Aggiornamento metadati con stesso contenuto file',
+        templateId: 'TPL-REPORT-DEMO',
+        templateName: 'Template report demo',
+      },
       ownerId: 'owner-001',
       status: CreateDocumentRequest.StatusEnum.InReview,
       tags: ['Report', 'Progress', 'Demo'],
@@ -134,10 +138,12 @@ async function main() {
       fileName: 'report-avanzamento-v2.txt',
       subKey,
       documentKey: demoDocumentKey,
-      templateId: 'TPL-REPORT-DEMO',
-      templateName: 'Template report demo',
-      title: 'Report avanzamento client demo v2',
-      description: 'Nuova versione con contenuto file diverso',
+      metadata: {
+        title: 'Report avanzamento client demo v2',
+        description: 'Nuova versione con contenuto file diverso',
+        templateId: 'TPL-REPORT-DEMO',
+        templateName: 'Template report demo',
+      },
       ownerId: 'owner-001',
       status: CreateDocumentRequest.StatusEnum.Approved,
       tags: ['Report', 'Progress', 'Demo'],
@@ -172,22 +178,23 @@ async function main() {
   );
   console.log('document detail:', detail.data.id, detail.data.title);
 
+  const mutableDocumentId = secondVersion.data.id;
   const updated = await documentsApi.documentKeysControllerUpdateDocument(
     { status: UpdateDocumentRequest.StatusEnum.InReview },
-    documentId,
+    mutableDocumentId,
     keyType,
     key,
   );
   console.log('updated status:', updated.data.status);
 
   const archived = await documentsApi.documentKeysControllerArchiveDocument(
-    documentId,
+    mutableDocumentId,
     keyType,
     key,
   );
   console.log('archived status:', archived.data.status);
 
-  await expectArchivedConflict();
+  await expectArchivedConflict(mutableDocumentId);
   console.log('demo uploaded files kept in storage/documents for version history.');
 }
 
@@ -257,11 +264,11 @@ async function expectInvalidQueryParam() {
   }
 }
 
-async function expectArchivedConflict() {
+async function expectArchivedConflict(archivedDocumentId: string) {
   try {
     await documentsApi.documentKeysControllerUpdateDocument(
       { status: UpdateDocumentRequest.StatusEnum.Approved },
-      documentId,
+      archivedDocumentId,
       keyType,
       key,
     );

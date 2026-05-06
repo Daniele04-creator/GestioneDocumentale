@@ -1,5 +1,6 @@
 import {
 	IsIn,
+	IsObject,
 	IsOptional,
 	IsString,
 	MaxLength,
@@ -22,6 +23,10 @@ export class UpdateDocumentDto {
 	@IsOptional()
 	@IsString()
 	description?: string;
+
+	@IsOptional()
+	@IsObject()
+	metadata?: Record<string, unknown>;
 
 	@IsOptional()
 	@IsIn(PATCH_DOCUMENT_STATUS_VALUES)

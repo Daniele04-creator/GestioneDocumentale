@@ -35,8 +35,12 @@ describe("DocumentsService", () => {
 		const createdDocument = {
 			id: "DOC-020",
 			documentKey: "REPORT-AVANZAMENTO-DEMO",
-			templateId: "TPL-REPORT",
-			templateName: "Template report avanzamento",
+			metadata: {
+				title: "Report avanzamento",
+				description: "Documento prodotto da una funzione esterna",
+				templateId: "TPL-REPORT",
+				templateName: "Template report avanzamento",
+			},
 			title: "Report avanzamento",
 			description: "Documento prodotto da una funzione esterna",
 			status: "draft",
@@ -117,10 +121,14 @@ describe("DocumentsService", () => {
 			expect.objectContaining({
 				subKey: "PKG-001",
 				documentKey: "REPORT-AVANZAMENTO-DEMO",
-				templateId: "TPL-REPORT",
-				templateName: "Template report avanzamento",
 				checksumSha256:
 					"0000000000000000000000000000000000000000000000000000000000000000",
+				metadata: {
+					title: "Report avanzamento",
+					description: "Documento prodotto da una funzione esterna",
+					templateId: "TPL-REPORT",
+					templateName: "Template report avanzamento",
+				},
 				tags: ["Report"],
 			}),
 		);

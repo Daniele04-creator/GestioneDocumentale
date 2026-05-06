@@ -254,10 +254,7 @@
                     "file": "<binary file>",
                     "subKey": "PKG-001",
                     "documentKey": "TPL-REPORT-MENSILE-2026-01",
-                    "templateId": "TPL-REPORT-MENSILE",
-                    "templateName": "Template report mensile",
-                    "title": "Report avanzamento",
-                    "description": "Documento prodotto da una funzione esterna",
+                    "metadata": "{\"title\":\"Report avanzamento\",\"description\":\"Documento prodotto da una funzione esterna\",\"templateId\":\"TPL-REPORT-MENSILE\",\"templateName\":\"Template report mensile\"}",
                     "ownerId": "owner-001",
                     "status": "draft",
                     "tags": [
@@ -1235,8 +1232,7 @@
           "owner",
           "tags",
           "documentKey",
-          "templateId",
-          "templateName",
+          "metadata",
           "checksumSha256"
         ],
         "properties": {
@@ -1249,25 +1245,15 @@
             "example": "SRS-SPECIFICATION",
             "description": "Chiave logica del documento generato nel contesto keyType/key/subKey."
           },
-          "templateId": {
-            "type": "string",
-            "nullable": true,
-            "example": "TPL-SRS",
-            "description": "Identificativo del template sorgente, se disponibile."
-          },
-          "templateName": {
-            "type": "string",
-            "nullable": true,
-            "example": "SRS specification template",
-            "description": "Nome descrittivo del template sorgente, se disponibile."
-          },
           "title": {
             "type": "string",
-            "example": "Specifica SRS"
+            "example": "Specifica SRS",
+            "description": "Titolo descrittivo derivato da metadata.title, mantenuto per compatibilita del client."
           },
           "description": {
             "type": "string",
-            "example": "Documento dei requisiti software"
+            "example": "Documento dei requisiti software",
+            "description": "Descrizione derivata da metadata.description, se presente."
           },
           "status": {
             "type": "string",
@@ -1303,6 +1289,9 @@
             "items": {
               "$ref": "#/components/schemas/DocumentTag"
             }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/DocumentMetadata"
           }
         }
       },
@@ -1323,8 +1312,7 @@
           "archivedAt",
           "tags",
           "documentKey",
-          "templateId",
-          "templateName",
+          "metadata",
           "checksumSha256"
         ],
         "properties": {
@@ -1337,25 +1325,15 @@
             "example": "SRS-SPECIFICATION",
             "description": "Chiave logica del documento generato nel contesto keyType/key/subKey."
           },
-          "templateId": {
-            "type": "string",
-            "nullable": true,
-            "example": "TPL-SRS",
-            "description": "Identificativo del template sorgente, se disponibile."
-          },
-          "templateName": {
-            "type": "string",
-            "nullable": true,
-            "example": "SRS specification template",
-            "description": "Nome descrittivo del template sorgente, se disponibile."
-          },
           "title": {
             "type": "string",
-            "example": "Specifica SRS"
+            "example": "Specifica SRS",
+            "description": "Titolo descrittivo derivato da metadata.title, mantenuto per compatibilita del client."
           },
           "description": {
             "type": "string",
-            "example": "Documento dei requisiti software"
+            "example": "Documento dei requisiti software",
+            "description": "Descrizione derivata da metadata.description, se presente."
           },
           "status": {
             "type": "string",
@@ -1415,6 +1393,9 @@
             "format": "date-time",
             "nullable": true,
             "example": null
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/DocumentMetadata"
           }
         }
       },
@@ -1576,11 +1557,13 @@
         "properties": {
           "title": {
             "type": "string",
-            "example": "Nuovo titolo"
+            "example": "Nuovo titolo",
+            "description": "Campo legacy: viene convertito in metadata.title."
           },
           "description": {
             "type": "string",
-            "example": "Nuova descrizione"
+            "example": "Nuova descrizione",
+            "description": "Campo legacy: viene convertito in metadata.description."
           },
           "status": {
             "type": "string",
@@ -1590,6 +1573,62 @@
               "approved"
             ],
             "example": "in_review"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "title": {
+                "type": "string",
+                "example": "Report avanzamento gennaio"
+              },
+              "description": {
+                "type": "string",
+                "example": "Documento generato da una funzione esterna"
+              },
+              "templateId": {
+                "type": "string",
+                "example": "TPL-REPORT"
+              },
+              "templateName": {
+                "type": "string",
+                "example": "Template report mensile"
+              },
+              "owner": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "owner-001"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Francesca R"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "francesca@example.test"
+                  },
+                  "source": {
+                    "type": "string",
+                    "example": "external-system"
+                  }
+                }
+              },
+              "source": {
+                "type": "object",
+                "additionalProperties": true,
+                "example": {
+                  "generatedBy": "template-service"
+                }
+              }
+            },
+            "description": "Patch parziale dei metadati descrittivi. Non puo contenere campi core come id, status, version, fileInfo, checksumSha256, keyType, key, subKey o documentKey.",
+            "example": {
+              "title": "Nuovo titolo",
+              "description": "Nuova descrizione"
+            }
           }
         }
       },
@@ -1598,7 +1637,6 @@
         "required": [
           "file",
           "subKey",
-          "title",
           "ownerId",
           "documentKey"
         ],
@@ -1622,21 +1660,24 @@
             "type": "string",
             "maxLength": 150,
             "example": "TPL-REPORT-MENSILE",
-            "description": "Template sorgente usato dal modulo esterno per generare il documento."
+            "description": "Campo legacy: viene salvato in metadata.templateId."
           },
           "templateName": {
             "type": "string",
             "maxLength": 200,
-            "example": "Template report mensile"
+            "example": "Template report mensile",
+            "description": "Campo legacy: viene salvato in metadata.templateName."
           },
           "title": {
             "type": "string",
-            "example": "Report avanzamento"
+            "example": "Report avanzamento",
+            "description": "Campo legacy: se metadata non contiene title, viene usato come metadata.title."
           },
           "description": {
             "type": "string",
             "nullable": true,
-            "example": "Documento prodotto da una funzione esterna"
+            "example": "Documento prodotto da una funzione esterna",
+            "description": "Campo legacy: viene salvato in metadata.description."
           },
           "ownerId": {
             "type": "string",
@@ -1662,6 +1703,11 @@
               "Report",
               "Progress"
             ]
+          },
+          "metadata": {
+            "type": "string",
+            "description": "JSON string con i metadati descrittivi del documento. Deve contenere almeno metadata.title. I campi legacy title/description/templateId/templateName restano supportati come fallback.",
+            "example": "{\"title\":\"Report avanzamento\",\"description\":\"Documento prodotto da una funzione esterna\",\"templateId\":\"TPL-REPORT\",\"templateName\":\"Template report mensile\"}"
           }
         }
       },
@@ -1709,6 +1755,60 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DocumentVersion"
+            }
+          }
+        }
+      },
+      "DocumentMetadata": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Report avanzamento gennaio"
+          },
+          "description": {
+            "type": "string",
+            "example": "Documento generato da una funzione esterna"
+          },
+          "templateId": {
+            "type": "string",
+            "example": "TPL-REPORT"
+          },
+          "templateName": {
+            "type": "string",
+            "example": "Template report mensile"
+          },
+          "owner": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "owner-001"
+              },
+              "name": {
+                "type": "string",
+                "example": "Francesca R"
+              },
+              "email": {
+                "type": "string",
+                "example": "francesca@example.test"
+              },
+              "source": {
+                "type": "string",
+                "example": "external-system"
+              }
+            }
+          },
+          "source": {
+            "type": "object",
+            "additionalProperties": true,
+            "example": {
+              "generatedBy": "template-service"
             }
           }
         }

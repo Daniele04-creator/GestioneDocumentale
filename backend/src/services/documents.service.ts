@@ -21,7 +21,10 @@ import {
 } from "../dto/create-document.dto";
 import { DOCUMENT_STATUS_VALUES } from "../dto/document-query.dto";
 import type { UpdateDocumentDto } from "../dto/update-document.dto";
-import type { DocumentStatus } from "../entities/document.entity";
+import type {
+	DocumentMetadata,
+	DocumentStatus,
+} from "../entities/document.entity";
 import {
 	type CreateDocumentInput,
 	type DocumentRow,
@@ -35,8 +38,7 @@ type DocumentListItem = Pick<
 	DocumentRow,
 	| "id"
 	| "documentKey"
-	| "templateId"
-	| "templateName"
+	| "metadata"
 	| "title"
 	| "description"
 	| "status"
@@ -81,6 +83,28 @@ type StoredDocumentFile = {
 	};
 	checksumSha256: string;
 };
+
+const FORBIDDEN_METADATA_FIELDS = new Set([
+	"id",
+	"keyType",
+	"key",
+	"subKey",
+	"documentKey",
+	"ownerId",
+	"owner_id",
+	"status",
+	"fileInfo",
+	"file_info",
+	"checksumSha256",
+	"checksum_sha256",
+	"version",
+	"createdAt",
+	"created_at",
+	"updatedAt",
+	"updated_at",
+	"archivedAt",
+	"archived_at",
+]);
 
 @Injectable()
 export class DocumentsService {
@@ -276,11 +300,11 @@ export class DocumentsService {
 		documentId: string,
 		body: UpdateDocumentDto,
 	) {
-		const payload = this.normalizeUpdatePayload(body);
 		const document = await this.getDocumentById(keyType, key, documentId);
 
 		if (document.status === "archived") throw documentArchived();
 
+		const payload = this.normalizeUpdatePayload(body, document.metadata);
 		const updatedDocument = await this.documentsRepository.updateForKey(
 			keyType,
 			key,
@@ -403,17 +427,23 @@ export class DocumentsService {
 		return trimmedValue === "" ? undefined : trimmedValue;
 	}
 
-	private normalizeUpdatePayload(body: UpdateDocumentDto) {
-		const payload: UpdateDocumentDto = {};
+	private normalizeUpdatePayload(
+		body: UpdateDocumentDto,
+		currentMetadata: DocumentMetadata,
+	) {
+		const payload: {
+			metadata?: DocumentMetadata;
+			status?: Exclude<DocumentStatus, "archived">;
+		} = {};
+		const metadataPatch = this.normalizePatchMetadata(body);
 
-		if (body.title !== undefined) {
-			const trimmedTitle = body.title.trim();
-			if (trimmedTitle === "")
-				throw invalidDocumentPatch("title must be a non-empty string");
-			payload.title = trimmedTitle;
+		if (metadataPatch) {
+			payload.metadata = this.normalizeMetadata({
+				...currentMetadata,
+				...metadataPatch,
+			});
 		}
 
-		if (body.description !== undefined) payload.description = body.description;
 		if (body.status !== undefined) payload.status = body.status;
 
 		if (Object.keys(payload).length === 0) {
@@ -430,16 +460,13 @@ export class DocumentsService {
 	): Omit<CreateDocumentInput, "fileInfo" | "checksumSha256"> {
 		const subKey = body.subKey.trim();
 		const documentKey = body.documentKey.trim();
-		const title = body.title.trim();
 		const ownerId = body.ownerId.trim();
 		const status = body.status;
-		const templateId = body.templateId?.trim();
-		const templateName = body.templateName?.trim();
+		const metadata = this.normalizeCreateMetadata(body);
 
 		if (subKey === "") throw invalidDocumentPatch("subKey is required");
 		if (documentKey === "")
 			throw invalidDocumentPatch("documentKey is required");
-		if (title === "") throw invalidDocumentPatch("title is required");
 		if (ownerId === "") throw invalidDocumentPatch("ownerId is required");
 
 		if (
@@ -463,15 +490,144 @@ export class DocumentsService {
 		return {
 			subKey,
 			documentKey,
-			templateId: templateId === "" ? undefined : templateId,
-			templateName: templateName === "" ? undefined : templateName,
-			title,
-			description: body.description,
+			metadata,
 			ownerId,
 			status,
 			tags,
 			createdAt: new Date().toISOString(),
 		};
+	}
+
+	private normalizeCreateMetadata(body: CreateDocumentDto): DocumentMetadata {
+		const metadata = this.parseMetadataField(body.metadata);
+		this.applyLegacyMetadataField(metadata, "title", body.title);
+		this.applyLegacyMetadataField(metadata, "description", body.description);
+		this.applyLegacyMetadataField(metadata, "templateId", body.templateId);
+		this.applyLegacyMetadataField(metadata, "templateName", body.templateName);
+
+		return this.normalizeMetadata(metadata);
+	}
+
+	private normalizePatchMetadata(
+		body: UpdateDocumentDto,
+	): Record<string, unknown> | undefined {
+		const metadata =
+			body.metadata === undefined ? {} : this.parseMetadataField(body.metadata);
+		this.applyLegacyMetadataField(metadata, "title", body.title);
+		this.applyLegacyMetadataField(metadata, "description", body.description);
+
+		if (Object.keys(metadata).length === 0) return undefined;
+
+		return metadata;
+	}
+
+	private parseMetadataField(value: unknown): Record<string, unknown> {
+		if (value === undefined || value === null || value === "") return {};
+
+		if (typeof value === "string") {
+			try {
+				const parsedValue = JSON.parse(value);
+				return this.ensureMetadataObject(parsedValue);
+			} catch {
+				throw invalidDocumentPatch("metadata must be valid JSON");
+			}
+		}
+
+		return this.ensureMetadataObject(value);
+	}
+
+	private ensureMetadataObject(value: unknown): Record<string, unknown> {
+		if (!value || typeof value !== "object" || Array.isArray(value)) {
+			throw invalidDocumentPatch("metadata must be an object");
+		}
+
+		const metadata = value as Record<string, unknown>;
+		for (const field of Object.keys(metadata)) {
+			if (FORBIDDEN_METADATA_FIELDS.has(field)) {
+				throw invalidDocumentPatch(
+					`metadata cannot contain core field ${field}`,
+				);
+			}
+		}
+
+		return { ...metadata };
+	}
+
+	private applyLegacyMetadataField(
+		metadata: Record<string, unknown>,
+		field: "title" | "description" | "templateId" | "templateName",
+		value?: string,
+	) {
+		if (value === undefined) return;
+
+		const trimmedValue = value.trim();
+		if (field === "title" && trimmedValue === "") {
+			throw invalidDocumentPatch("metadata.title is required");
+		}
+
+		if (trimmedValue === "") {
+			delete metadata[field];
+			return;
+		}
+
+		metadata[field] = trimmedValue;
+	}
+
+	private normalizeMetadata(
+		metadata: Record<string, unknown>,
+	): DocumentMetadata {
+		this.ensureMetadataObject(metadata);
+
+		if (typeof metadata.title !== "string" || metadata.title.trim() === "") {
+			throw invalidDocumentPatch("metadata.title is required");
+		}
+
+		const normalizedMetadata: DocumentMetadata = {
+			...metadata,
+			title: metadata.title.trim(),
+		};
+
+		this.normalizeOptionalMetadataString(
+			normalizedMetadata,
+			"description",
+			"metadata.description must be a string",
+		);
+		this.normalizeOptionalMetadataString(
+			normalizedMetadata,
+			"templateId",
+			"metadata.templateId must be a string",
+		);
+		this.normalizeOptionalMetadataString(
+			normalizedMetadata,
+			"templateName",
+			"metadata.templateName must be a string",
+		);
+
+		return normalizedMetadata;
+	}
+
+	private normalizeOptionalMetadataString(
+		metadata: Record<string, unknown>,
+		field: "description" | "templateId" | "templateName",
+		errorMessage: string,
+	) {
+		const value = metadata[field];
+		if (value === undefined || value === null || value === "") {
+			delete metadata[field];
+			return;
+		}
+
+		if (typeof value !== "string") {
+			throw invalidDocumentPatch(errorMessage);
+		}
+
+		const trimmedValue = value.trim();
+		if (trimmedValue === "") {
+			delete metadata[field];
+			return;
+		}
+
+		metadata[field] = trimmedValue;
 	}
 
 	private async storeUploadedDocumentFile(
@@ -600,8 +756,7 @@ export class DocumentsService {
 			documentSubKey.documents.push({
 				id: document.id,
 				documentKey: document.documentKey,
-				templateId: document.templateId,
-				templateName: document.templateName,
+				metadata: document.metadata,
 				title: document.title,
 				description: document.description,
 				status: document.status,

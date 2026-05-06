@@ -62,6 +62,21 @@ export interface DocumentOwner {
     name: string;
 }
 
+export interface DocumentMetadata {
+    title: string;
+    description?: string;
+    templateId?: string;
+    templateName?: string;
+    owner?: {
+        id?: string;
+        name?: string;
+        email?: string;
+        source?: string;
+    };
+    source?: { [key: string]: any };
+    [key: string]: any;
+}
+
 export interface KeyRef {
     id: string;
     name: string;
@@ -87,8 +102,7 @@ export interface FileInfo {
 export interface DocumentListItem {
     id: string;
     documentKey: string;
-    templateId: string | null;
-    templateName: string | null;
+    metadata: DocumentMetadata;
     title: string;
     description?: string;
     status: DocumentListItem.StatusEnum;
@@ -184,9 +198,10 @@ export interface CreateDocumentRequest {
     fileName?: string;
     subKey: string;
     documentKey: string;
+    metadata?: DocumentMetadata | string;
     templateId?: string;
     templateName?: string;
-    title: string;
+    title?: string;
     description?: string | null;
     ownerId: string;
     status?: CreateDocumentRequest.StatusEnum;
@@ -202,6 +217,7 @@ export namespace CreateDocumentRequest {
 }
 
 export interface UpdateDocumentRequest {
+    metadata?: Partial<DocumentMetadata>;
     title?: string;
     description?: string;
     status?: UpdateDocumentRequest.StatusEnum;
@@ -263,9 +279,12 @@ export class DocumentKeysApi extends BaseAPI {
         formData.append("file", body.file, body.fileName || "document");
         formData.append("subKey", body.subKey);
         formData.append("documentKey", body.documentKey);
+        if (body.metadata !== undefined) {
+            formData.append("metadata", typeof body.metadata === "string" ? body.metadata : JSON.stringify(body.metadata));
+        }
         if (body.templateId !== undefined) formData.append("templateId", body.templateId);
         if (body.templateName !== undefined) formData.append("templateName", body.templateName);
-        formData.append("title", body.title);
+        if (body.title !== undefined) formData.append("title", body.title);
         formData.append("ownerId", body.ownerId);
         if (body.description !== undefined && body.description !== null) formData.append("description", body.description);
         if (body.status !== undefined) formData.append("status", String(body.status));

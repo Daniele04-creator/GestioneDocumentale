@@ -34,14 +34,18 @@ export class CreateDocumentDto {
 	@MaxLength(200)
 	templateName?: string;
 
+	@IsOptional()
 	@IsString()
 	@MinLength(1)
 	@MaxLength(200)
-	title!: string;
+	title?: string;
 
 	@IsOptional()
 	@IsString()
 	description?: string;
+
+	@IsOptional()
+	metadata?: unknown;
 
 	@IsString()
 	@MinLength(1)

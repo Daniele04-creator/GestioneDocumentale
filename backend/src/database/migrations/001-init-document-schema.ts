@@ -57,11 +57,8 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 				key_value VARCHAR(100) NOT NULL,
 				sub_key VARCHAR(100) NOT NULL,
 				document_key VARCHAR(150) NOT NULL,
-				template_id VARCHAR(150) NULL,
-				template_name VARCHAR(200) NULL,
 				owner_id VARCHAR(100) NOT NULL,
-				title VARCHAR(200) NOT NULL CHECK (btrim(title) <> ''),
-				description TEXT,
+				metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
 				status VARCHAR(30) NOT NULL CHECK (status IN ('draft', 'in_review', 'approved', 'archived')),
 				file_info JSONB NOT NULL,
 				checksum_sha256 VARCHAR(64) NOT NULL,
@@ -79,6 +76,12 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 				CONSTRAINT uq_documents_logical_key UNIQUE (key_type, key_value, sub_key, document_key),
 				CONSTRAINT chk_documents_id_format CHECK (id ~ '^DOC-[0-9]{3,}$'),
 				CONSTRAINT chk_documents_document_key_not_empty CHECK (btrim(document_key) <> ''),
+				CONSTRAINT chk_documents_metadata CHECK (
+					jsonb_typeof(metadata) = 'object'
+					AND metadata ? 'title'
+					AND jsonb_typeof(metadata->'title') = 'string'
+					AND btrim(metadata->>'title') <> ''
+				),
 				CONSTRAINT chk_documents_checksum_sha256 CHECK (checksum_sha256 ~ '^[a-f0-9]{64}$'),
 				CONSTRAINT chk_documents_file_info CHECK (
 					file_info ? 'fileName'

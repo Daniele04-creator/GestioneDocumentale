@@ -18,7 +18,7 @@ Ogni documento e' associato a:
 - una `key`, cioe' l'identificativo del contenitore generale;
 - una `subKey`, cioe' il sotto-elemento documentale;
 - un `documentKey`, cioe' la chiave logica del documento nel contesto `keyType + key + subKey`;
-- un eventuale `templateId` / `templateName`, che descrive il template sorgente usato da un modulo esterno;
+- un oggetto `metadata` JSONB con metadati descrittivi variabili, ad esempio `title`, `description`, `templateId` e `templateName`;
 - un owner/responsabile documentale;
 - uno o piu' tag;
 - un file locale demo usato per il download.
@@ -78,9 +78,9 @@ DELETE /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 
 Il backend usa migration TypeORM versionate e mantiene `synchronize: false`. Il download usa `file_info.storagePath` internamente, ma non espone `storagePath` nelle response pubbliche.
 
-Il `POST /documents` acquisisce in `multipart/form-data` il documento finale prodotto da un modulo esterno, salva fisicamente il file in `storage/documents/` e registra i metadati nel database. Non e' upload manuale libero da UI: e' l'ingresso tecnico del documento gia' generato dal processo applicativo.
+Il `POST /documents` acquisisce in `multipart/form-data` il documento finale prodotto da un modulo esterno, salva fisicamente il file in `storage/documents/` e registra i metadati nel database. I metadati descrittivi entrano nel campo `metadata` JSONB; `file_info` resta separato per i dati tecnici del file. Non e' upload manuale libero da UI: e' l'ingresso tecnico del documento gia' generato dal processo applicativo.
 
-`documentKey` non coincide con `templateId`: il `templateId` identifica il template sorgente, mentre `documentKey` identifica il documento logico generato nel contesto `keyType + key + subKey`. Se arriva lo stesso `documentKey` con lo stesso checksum SHA-256, il backend aggiorna solo i metadati. Se arriva lo stesso `documentKey` con contenuto diverso, crea una nuova versione, aggiorna il documento corrente e non sovrascrive i file precedenti.
+`documentKey` non coincide con `metadata.templateId`: il `templateId` identifica il template sorgente, mentre `documentKey` identifica il documento logico generato nel contesto `keyType + key + subKey`. Se arriva lo stesso `documentKey` con lo stesso checksum SHA-256, il backend aggiorna solo i metadati. Se arriva lo stesso `documentKey` con contenuto diverso, crea una nuova versione, aggiorna il documento corrente e non sovrascrive i file precedenti.
 
 ## OpenAPI e client
 
@@ -136,6 +136,8 @@ Il seed popola solo dati demo e documenti collegati a file locali in `storage/do
 Gli identificativi pubblici dei documenti restano nel formato `DOC-001`, `DOC-020`, ecc. e sono generati tramite la sequence PostgreSQL `document_id_seq`, sincronizzata dal seed sui documenti demo esistenti.
 
 La tabella `documents` contiene la versione corrente e il checksum SHA-256 corrente. La tabella `document_versions` mantiene lo storico dei file e dei checksum per ogni versione.
+
+I dati descrittivi variabili del documento stanno in `documents.metadata` (`JSONB`). I campi core restano colonne strutturate: identificativi, `owner_id`, `status`, `file_info`, `checksum_sha256`, `version` e date tecniche. `file_info` resta un JSONB separato per i metadati tecnici del file. I tag restano in tabelle dedicate perche' sono il criterio principale di filtro e ricerca documentale. La tabella `owners` e `owner_id` restano presenti provvisoriamente finche' non viene confermata una gestione esterna degli owner.
 
 Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Copiare `.env.example` in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
 

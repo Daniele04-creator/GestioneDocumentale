@@ -20,6 +20,21 @@ export type DocumentFileInfo = {
 	storagePath: string;
 };
 
+export type DocumentMetadata = {
+	title: string;
+	description?: string;
+	templateId?: string;
+	templateName?: string;
+	owner?: {
+		id?: string;
+		name?: string;
+		email?: string;
+		source?: string;
+	};
+	source?: Record<string, unknown>;
+	[key: string]: unknown;
+};
+
 @Entity("documents")
 export class Document {
 	@PrimaryColumn({ type: "varchar", length: 30 })
@@ -37,25 +52,11 @@ export class Document {
 	@Column({ name: "document_key", type: "varchar", length: 150 })
 	documentKey!: string;
 
-	@Column({ name: "template_id", type: "varchar", length: 150, nullable: true })
-	templateId?: string | null;
-
-	@Column({
-		name: "template_name",
-		type: "varchar",
-		length: 200,
-		nullable: true,
-	})
-	templateName?: string | null;
-
 	@Column({ name: "owner_id", type: "varchar", length: 100 })
 	ownerId!: string;
 
-	@Column({ type: "varchar", length: 200 })
-	title!: string;
-
-	@Column({ type: "text", nullable: true })
-	description?: string | null;
+	@Column({ type: "jsonb" })
+	metadata!: DocumentMetadata;
 
 	@Column({ type: "varchar", length: 30 })
 	status!: DocumentStatus;
