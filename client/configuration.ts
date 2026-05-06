@@ -1,7 +1,7 @@
 // tslint:disable
 /**
  * Management as Code Documents API
- * API del modulo documentale project-scoped di Management as Code.
+ * API del modulo documentale key-scoped di Management as Code.
  *
  * OpenAPI spec version: 0.1.0
  * 

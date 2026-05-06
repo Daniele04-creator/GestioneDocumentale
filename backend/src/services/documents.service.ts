@@ -8,7 +8,7 @@ import {
 	invalidDocumentId,
 	invalidDocumentPatch,
 	invalidQueryParam,
-	projectNotFound,
+	keyNotFound,
 } from "../common/errors/document-errors";
 import { PROJECT_ROOT, STORAGE_ROOT } from "../common/utils/paths";
 import { DOCUMENT_STATUS_VALUES } from "../dto/document-query.dto";
@@ -21,13 +21,7 @@ import {
 } from "../repositories/documents.repository";
 
 type StatusSummary = Record<DocumentStatus, number>;
-const QUERY_FIELDS = new Set([
-	"packageId",
-	"ownerId",
-	"tag",
-	"status",
-	"search",
-]);
+const QUERY_FIELDS = new Set(["subKey", "ownerId", "tag", "status", "search"]);
 type DocumentListItem = Pick<
 	DocumentRow,
 	| "id"
@@ -40,20 +34,19 @@ type DocumentListItem = Pick<
 	| "tags"
 >;
 
-type DocumentPackageGroup = {
-	project: DocumentRow["project"];
-	id: string;
-	name: string;
-	parentPackage: DocumentRow["parentPackage"];
+type DocumentSubKeyGroup = {
+	keyType: string;
+	key: DocumentRow["key"];
+	subKey: DocumentRow["subKey"];
 	documentCount: number;
 	statusSummary: StatusSummary;
 	documents: DocumentListItem[];
 };
 
-type DocumentTreePackage = {
-	id: string;
-	name: string;
-	parentPackage: DocumentRow["parentPackage"];
+type DocumentTreeSubKey = {
+	keyType: string;
+	key: DocumentRow["key"];
+	subKey: DocumentRow["subKey"];
 	documentCount: number;
 	statusSummary: StatusSummary;
 };
@@ -62,35 +55,46 @@ type DocumentTreePackage = {
 export class DocumentsService {
 	constructor(private readonly documentsRepository: DocumentsRepository) {}
 
-	async getProjectDocuments(projectId: string, query: Record<string, unknown>) {
-		const validProjectId = this.validateProjectId(projectId);
+	async getDocuments(
+		keyType: string,
+		key: string,
+		query: Record<string, unknown>,
+	) {
+		const validKeyType = this.validateKeyType(keyType);
+		const validKey = this.validateKey(key);
 		const filters = this.normalizeQuery(query);
-		await this.ensureProjectExists(validProjectId);
+		await this.ensureKeyExists(validKeyType, validKey);
 
 		const documents = await this.documentsRepository.findAll({
 			...filters,
-			projectId: validProjectId,
+			keyType: validKeyType,
+			key: validKey,
 		});
 
 		return this.buildGroupedDocumentsResponse(documents);
 	}
 
-	async getProjectDocumentTree(projectId: string) {
-		const validProjectId = this.validateProjectId(projectId);
-		await this.ensureProjectExists(validProjectId);
+	async getDocumentTree(keyType: string, key: string) {
+		const validKeyType = this.validateKeyType(keyType);
+		const validKey = this.validateKey(key);
+		await this.ensureKeyExists(validKeyType, validKey);
 
-		const rows =
-			await this.documentsRepository.findDocumentTreeByProject(validProjectId);
+		const rows = await this.documentsRepository.findDocumentTreeByKey(
+			validKeyType,
+			validKey,
+		);
 		return this.buildDocumentTreeResponse(rows);
 	}
 
-	async getProjectDocumentById(projectId: string, documentId: string) {
-		const validProjectId = this.validateProjectId(projectId);
+	async getDocumentById(keyType: string, key: string, documentId: string) {
+		const validKeyType = this.validateKeyType(keyType);
+		const validKey = this.validateKey(key);
 		const validDocumentId = this.validateDocumentId(documentId);
-		await this.ensureProjectExists(validProjectId);
+		await this.ensureKeyExists(validKeyType, validKey);
 
-		const document = await this.documentsRepository.findByProjectAndId(
-			validProjectId,
+		const document = await this.documentsRepository.findByKeyAndId(
+			validKeyType,
+			validKey,
 			validDocumentId,
 		);
 
@@ -99,13 +103,15 @@ export class DocumentsService {
 		return document;
 	}
 
-	async getProjectDocumentFile(projectId: string, documentId: string) {
-		const validProjectId = this.validateProjectId(projectId);
+	async getDocumentFile(keyType: string, key: string, documentId: string) {
+		const validKeyType = this.validateKeyType(keyType);
+		const validKey = this.validateKey(key);
 		const validDocumentId = this.validateDocumentId(documentId);
-		await this.ensureProjectExists(validProjectId);
+		await this.ensureKeyExists(validKeyType, validKey);
 
-		const fileInfo = await this.documentsRepository.findFileInfoByProjectAndId(
-			validProjectId,
+		const fileInfo = await this.documentsRepository.findFileInfoByKeyAndId(
+			validKeyType,
+			validKey,
 			validDocumentId,
 		);
 
@@ -124,18 +130,20 @@ export class DocumentsService {
 		};
 	}
 
-	async updateProjectDocument(
-		projectId: string,
+	async updateDocument(
+		keyType: string,
+		key: string,
 		documentId: string,
 		body: UpdateDocumentDto,
 	) {
 		const payload = this.normalizeUpdatePayload(body);
-		const document = await this.getProjectDocumentById(projectId, documentId);
+		const document = await this.getDocumentById(keyType, key, documentId);
 
 		if (document.status === "archived") throw documentArchived();
 
-		const updatedDocument = await this.documentsRepository.updateForProject(
-			projectId,
+		const updatedDocument = await this.documentsRepository.updateForKey(
+			keyType,
+			key,
 			documentId,
 			{
 				...payload,
@@ -148,12 +156,13 @@ export class DocumentsService {
 		return updatedDocument;
 	}
 
-	async archiveProjectDocument(projectId: string, documentId: string) {
-		await this.getProjectDocumentById(projectId, documentId);
+	async archiveDocument(keyType: string, key: string, documentId: string) {
+		await this.getDocumentById(keyType, key, documentId);
 
 		const now = new Date().toISOString();
-		const archivedDocument = await this.documentsRepository.updateForProject(
-			projectId,
+		const archivedDocument = await this.documentsRepository.updateForKey(
+			keyType,
+			key,
 			documentId,
 			{
 				status: "archived",
@@ -167,18 +176,26 @@ export class DocumentsService {
 		return archivedDocument;
 	}
 
-	private async ensureProjectExists(projectId: string) {
-		const exists = await this.documentsRepository.projectExists(projectId);
+	private async ensureKeyExists(keyType: string, key: string) {
+		const exists = await this.documentsRepository.keyExists(keyType, key);
 
-		if (!exists) throw projectNotFound();
+		if (!exists) throw keyNotFound();
 	}
 
-	private validateProjectId(projectId: string) {
-		if (typeof projectId !== "string" || projectId.trim() === "") {
-			throw invalidQueryParam("Invalid project id.");
+	private validateKeyType(keyType: string) {
+		if (typeof keyType !== "string" || keyType.trim() === "") {
+			throw invalidQueryParam("Invalid key type.");
 		}
 
-		return projectId.trim();
+		return keyType.trim();
+	}
+
+	private validateKey(key: string) {
+		if (typeof key !== "string" || key.trim() === "") {
+			throw invalidQueryParam("Invalid key.");
+		}
+
+		return key.trim();
 	}
 
 	private validateDocumentId(documentId: string) {
@@ -197,7 +214,7 @@ export class DocumentsService {
 		const status = this.optionalStatus(query.status);
 
 		return {
-			packageId: this.optionalQueryString(query.packageId, "packageId"),
+			subKey: this.optionalQueryString(query.subKey, "subKey"),
 			ownerId: this.optionalQueryString(query.ownerId, "ownerId"),
 			tag: this.optionalQueryString(query.tag, "tag"),
 			status,
@@ -259,14 +276,14 @@ export class DocumentsService {
 	}
 
 	private buildGroupedDocumentsResponse(documents: DocumentRow[]) {
-		const packages = this.groupDocumentsByPackage(documents);
+		const subKeys = this.groupDocumentsBySubKey(documents);
 
 		return {
-			data: packages,
+			data: subKeys,
 			meta: {
-				totalPackages: packages.length,
-				totalDocuments: packages.reduce(
-					(total, documentPackage) => total + documentPackage.documentCount,
+				totalSubKeys: subKeys.length,
+				totalDocuments: subKeys.reduce(
+					(total, subKey) => total + subKey.documentCount,
 					0,
 				),
 			},
@@ -274,46 +291,43 @@ export class DocumentsService {
 	}
 
 	private buildDocumentTreeResponse(rows: DocumentTreeRow[]) {
-		const packages = this.groupDocumentTreeRows(rows);
+		const subKeys = this.groupDocumentTreeRows(rows);
 
 		return {
-			data: packages,
+			data: subKeys,
 			meta: {
-				totalPackages: packages.length,
-				totalDocuments: packages.reduce(
-					(total, documentPackage) => total + documentPackage.documentCount,
+				totalSubKeys: subKeys.length,
+				totalDocuments: subKeys.reduce(
+					(total, subKey) => total + subKey.documentCount,
 					0,
 				),
 			},
 		};
 	}
 
-	private groupDocumentsByPackage(documents: DocumentRow[]) {
-		const packagesByProjectAndId = new Map<string, DocumentPackageGroup>();
+	private groupDocumentsBySubKey(documents: DocumentRow[]) {
+		const subKeysById = new Map<string, DocumentSubKeyGroup>();
 
 		for (const document of documents) {
-			const projectId = document.project.id;
-			const packageId = document.package.id;
-			const packageKey = `${projectId}:${packageId}`;
+			const groupKey = `${document.keyType}:${document.key.id}:${document.subKey.id}`;
 
-			if (!packagesByProjectAndId.has(packageKey)) {
-				packagesByProjectAndId.set(packageKey, {
-					project: document.project,
-					id: packageId,
-					name: document.package.name,
-					parentPackage: document.parentPackage,
+			if (!subKeysById.has(groupKey)) {
+				subKeysById.set(groupKey, {
+					keyType: document.keyType,
+					key: document.key,
+					subKey: document.subKey,
 					documentCount: 0,
 					statusSummary: this.createStatusSummary(),
 					documents: [],
 				});
 			}
 
-			const documentPackage = packagesByProjectAndId.get(packageKey);
-			if (!documentPackage) continue;
+			const documentSubKey = subKeysById.get(groupKey);
+			if (!documentSubKey) continue;
 
-			documentPackage.documentCount += 1;
-			this.incrementStatus(documentPackage.statusSummary, document.status);
-			documentPackage.documents.push({
+			documentSubKey.documentCount += 1;
+			this.incrementStatus(documentSubKey.statusSummary, document.status);
+			documentSubKey.documents.push({
 				id: document.id,
 				title: document.title,
 				description: document.description,
@@ -325,20 +339,27 @@ export class DocumentsService {
 			});
 		}
 
-		return Array.from(packagesByProjectAndId.values());
+		return Array.from(subKeysById.values());
 	}
 
 	private groupDocumentTreeRows(rows: DocumentTreeRow[]) {
 		return rows.map(
-			(row): DocumentTreePackage => ({
-				id: row.package_id,
-				name: row.package_name,
-				parentPackage: row.parent_package_id
-					? {
-							id: row.parent_package_id,
-							name: row.parent_package_name ?? "",
-						}
-					: null,
+			(row): DocumentTreeSubKey => ({
+				keyType: row.key_type,
+				key: {
+					id: row.key_value,
+					name: row.key_name,
+				},
+				subKey: {
+					id: row.sub_key,
+					name: row.sub_key_name,
+					parentSubKey: row.parent_sub_key
+						? {
+								id: row.parent_sub_key,
+								name: row.parent_sub_key_name ?? "",
+							}
+						: null,
+				},
 				documentCount: Number(row.document_count),
 				statusSummary: this.createStatusSummaryFromRow(row),
 			}),

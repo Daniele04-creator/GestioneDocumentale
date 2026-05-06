@@ -42,7 +42,7 @@ Nel prototipo locale attuale:
 Il modulo documentale gestisce documenti collegati al contesto progettuale:
 
 ```text
-Progetto -> Package -> Documento
+keyType + key -> subKey -> Documento
 ```
 
 Non implementare generazione/stampa da template: e' area separata.

@@ -1,1 +1,1 @@
-Demo state management notes for filters, selected package, document detail, and loading states.                          
+Demo state management notes for filters, selected subKey, document detail, and loading states.                          

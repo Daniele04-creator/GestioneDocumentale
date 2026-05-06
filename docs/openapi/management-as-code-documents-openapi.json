@@ -24,10 +24,73 @@
         ]
       }
     },
-    "/api/v1/projects/{projectId}/documents": {
+    "/api/v1/document-keys/{keyType}/{key}/document-tree": {
       "get": {
-        "description": "Restituisce la home documentale del progetto, con documenti raggruppati per package e filtrabili tramite query parameters.",
-        "operationId": "ProjectDocumentsController_listProjectDocuments",
+        "description": "Restituisce una struttura leggera dei subKey del contenitore documentale, con conteggi e statusSummary, senza caricare i dettagli dei documenti.",
+        "operationId": "DocumentKeysController_getDocumentTree",
+        "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document tree returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentTreeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "KEY_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
+                    "value": {
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get document tree by key",
+        "tags": [
+          "Document keys"
+        ]
+      }
+    },
+    "/api/v1/document-keys/{keyType}/{key}/documents": {
+      "get": {
+        "description": "Restituisce i documenti del contenitore documentale, raggruppati per subKey e filtrabili tramite query parameters.",
+        "operationId": "DocumentKeysController_listDocuments",
         "parameters": [
           {
             "name": "search",
@@ -42,13 +105,14 @@
             "required": false,
             "in": "query",
             "schema": {
+              "type": "string",
               "enum": [
                 "draft",
                 "in_review",
                 "approved",
                 "archived"
               ],
-              "type": "string"
+              "example": "approved"
             }
           },
           {
@@ -68,26 +132,37 @@
             }
           },
           {
-            "name": "packageId",
+            "name": "subKey",
             "required": false,
             "in": "query",
             "schema": {
-              "example": "package-001"
+              "example": "PKG-001"
             }
           },
           {
-            "name": "projectId",
+            "name": "keyType",
             "required": true,
             "in": "path",
-            "description": "ID del progetto",
             "schema": {
-              "example": "project-001"
-            }
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
           }
         ],
         "responses": {
           "200": {
-            "description": "Project document home returned.",
+            "description": "Document home returned.",
             "content": {
               "application/json": {
                 "schema": {
@@ -116,18 +191,18 @@
             }
           },
           "404": {
-            "description": "PROJECT_NOT_FOUND",
+            "description": "KEY_NOT_FOUND",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
-                  "PROJECT_NOT_FOUND": {
-                    "summary": "PROJECT_NOT_FOUND",
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
                     "value": {
-                      "code": "PROJECT_NOT_FOUND",
-                      "message": "Project not found."
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
                     }
                   }
                 }
@@ -135,89 +210,47 @@
             }
           }
         },
-        "summary": "List project documents",
+        "summary": "List documents by key",
         "tags": [
-          "Project documents"
+          "Document keys"
         ]
       }
     },
-    "/api/v1/projects/{projectId}/document-tree": {
-      "get": {
-        "description": "Restituisce una struttura leggera dei package del progetto, con conteggi e statusSummary, senza caricare i dettagli dei documenti.",
-        "operationId": "ProjectDocumentsController_getProjectDocumentTree",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "description": "ID del progetto",
-            "style": "simple",
-            "explode": false,
-            "schema": {
-              "example": "project-001"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Project document tree returned.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentTreeResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "PROJECT_NOT_FOUND",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                },
-                "examples": {
-                  "PROJECT_NOT_FOUND": {
-                    "summary": "PROJECT_NOT_FOUND",
-                    "value": {
-                      "code": "PROJECT_NOT_FOUND",
-                      "message": "Project not found."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Get project document tree",
-        "tags": [
-          "Project documents"
-        ]
-      }
-    },
-    "/api/v1/projects/{projectId}/documents/{documentId}/file": {
+    "/api/v1/document-keys/{keyType}/{key}/documents/{documentId}/file": {
       "get": {
         "description": "Scarica il file associato al documento.",
-        "operationId": "ProjectDocumentsController_downloadProjectDocumentFile",
+        "operationId": "DocumentKeysController_downloadDocumentFile",
         "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          },
           {
             "name": "documentId",
             "required": true,
             "in": "path",
-            "description": "ID del documento nel formato DOC-001",
             "schema": {
               "type": "string",
-              "pattern": "^DOC-[0-9]{3}$"
-            }
-          },
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "description": "ID del progetto",
-            "schema": {
-              "example": "project-001"
-            }
+              "pattern": "^DOC-[0-9]{3}$",
+              "example": "DOC-001"
+            },
+            "description": "ID del documento nel formato DOC-001"
           }
         ],
         "responses": {
@@ -257,18 +290,18 @@
             }
           },
           "404": {
-            "description": "PROJECT_NOT_FOUND, DOCUMENT_NOT_FOUND or DOCUMENT_FILE_NOT_FOUND",
+            "description": "KEY_NOT_FOUND, DOCUMENT_NOT_FOUND or DOCUMENT_FILE_NOT_FOUND",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
-                  "PROJECT_NOT_FOUND": {
-                    "summary": "PROJECT_NOT_FOUND",
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
                     "value": {
-                      "code": "PROJECT_NOT_FOUND",
-                      "message": "Project not found."
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
                     }
                   },
                   "DOCUMENT_NOT_FOUND": {
@@ -290,35 +323,47 @@
             }
           }
         },
-        "summary": "Download project document file",
+        "summary": "Download document file by key",
         "tags": [
-          "Project documents"
+          "Document keys"
         ]
       }
     },
-    "/api/v1/projects/{projectId}/documents/{documentId}": {
+    "/api/v1/document-keys/{keyType}/{key}/documents/{documentId}": {
       "get": {
-        "description": "Restituisce il dettaglio di un documento appartenente al progetto indicato.",
-        "operationId": "ProjectDocumentsController_getProjectDocumentById",
+        "description": "Restituisce il dettaglio di un documento appartenente al contenitore documentale indicato.",
+        "operationId": "DocumentKeysController_getDocumentById",
         "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          },
           {
             "name": "documentId",
             "required": true,
             "in": "path",
-            "description": "ID del documento nel formato DOC-001",
             "schema": {
               "type": "string",
-              "pattern": "^DOC-[0-9]{3}$"
-            }
-          },
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "description": "ID del progetto",
-            "schema": {
-              "example": "project-001"
-            }
+              "pattern": "^DOC-[0-9]{3}$",
+              "example": "DOC-001"
+            },
+            "description": "ID del documento nel formato DOC-001"
           }
         ],
         "responses": {
@@ -352,18 +397,18 @@
             }
           },
           "404": {
-            "description": "PROJECT_NOT_FOUND or DOCUMENT_NOT_FOUND",
+            "description": "KEY_NOT_FOUND or DOCUMENT_NOT_FOUND",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
-                  "PROJECT_NOT_FOUND": {
-                    "summary": "PROJECT_NOT_FOUND",
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
                     "value": {
-                      "code": "PROJECT_NOT_FOUND",
-                      "message": "Project not found."
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
                     }
                   },
                   "DOCUMENT_NOT_FOUND": {
@@ -378,33 +423,45 @@
             }
           }
         },
-        "summary": "Get project document by id",
+        "summary": "Get document by id and key",
         "tags": [
-          "Project documents"
+          "Document keys"
         ]
       },
       "patch": {
         "description": "Aggiorna i campi modificabili di un documento non archiviato.",
-        "operationId": "ProjectDocumentsController_updateProjectDocument",
+        "operationId": "DocumentKeysController_updateDocument",
         "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          },
           {
             "name": "documentId",
             "required": true,
             "in": "path",
-            "description": "ID del documento nel formato DOC-001",
             "schema": {
               "type": "string",
-              "pattern": "^DOC-[0-9]{3}$"
-            }
-          },
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "description": "ID del progetto",
-            "schema": {
-              "example": "project-001"
-            }
+              "pattern": "^DOC-[0-9]{3}$",
+              "example": "DOC-001"
+            },
+            "description": "ID del documento nel formato DOC-001"
           }
         ],
         "requestBody": {
@@ -455,18 +512,18 @@
             }
           },
           "404": {
-            "description": "PROJECT_NOT_FOUND or DOCUMENT_NOT_FOUND",
+            "description": "KEY_NOT_FOUND or DOCUMENT_NOT_FOUND",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
-                  "PROJECT_NOT_FOUND": {
-                    "summary": "PROJECT_NOT_FOUND",
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
                     "value": {
-                      "code": "PROJECT_NOT_FOUND",
-                      "message": "Project not found."
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
                     }
                   },
                   "DOCUMENT_NOT_FOUND": {
@@ -492,7 +549,7 @@
                     "summary": "DOCUMENT_ARCHIVED",
                     "value": {
                       "code": "DOCUMENT_ARCHIVED",
-                      "message": "Il documento archiviato non può essere modificato."
+                      "message": "Il documento archiviato non puo' essere modificato."
                     }
                   }
                 }
@@ -500,33 +557,45 @@
             }
           }
         },
-        "summary": "Update project document",
+        "summary": "Update document by key",
         "tags": [
-          "Project documents"
+          "Document keys"
         ]
       },
       "delete": {
         "description": "Archivia logicamente il documento impostando status archived e archivedAt.",
-        "operationId": "ProjectDocumentsController_archiveProjectDocument",
+        "operationId": "DocumentKeysController_archiveDocument",
         "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          },
           {
             "name": "documentId",
             "required": true,
             "in": "path",
-            "description": "ID del documento nel formato DOC-001",
             "schema": {
               "type": "string",
-              "pattern": "^DOC-[0-9]{3}$"
-            }
-          },
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "description": "ID del progetto",
-            "schema": {
-              "example": "project-001"
-            }
+              "pattern": "^DOC-[0-9]{3}$",
+              "example": "DOC-001"
+            },
+            "description": "ID del documento nel formato DOC-001"
           }
         ],
         "responses": {
@@ -560,18 +629,18 @@
             }
           },
           "404": {
-            "description": "PROJECT_NOT_FOUND or DOCUMENT_NOT_FOUND",
+            "description": "KEY_NOT_FOUND or DOCUMENT_NOT_FOUND",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
-                  "PROJECT_NOT_FOUND": {
-                    "summary": "PROJECT_NOT_FOUND",
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
                     "value": {
-                      "code": "PROJECT_NOT_FOUND",
-                      "message": "Project not found."
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
                     }
                   },
                   "DOCUMENT_NOT_FOUND": {
@@ -586,22 +655,22 @@
             }
           }
         },
-        "summary": "Archive project document",
+        "summary": "Archive document by key",
         "tags": [
-          "Project documents"
+          "Document keys"
         ]
       }
     }
   },
   "info": {
     "title": "Management as Code Documents API",
-    "description": "API del modulo documentale project-scoped di Management as Code.",
+    "description": "API del modulo documentale key-scoped di Management as Code.",
     "version": "0.1.0",
     "contact": {}
   },
   "tags": [
     {
-      "name": "Project documents",
+      "name": "Document keys",
       "description": ""
     },
     {
@@ -631,7 +700,6 @@
           "timestamp": {
             "type": "string",
             "format": "date-time",
-            "nullable": false,
             "example": "2026-01-01T10:00:00.000Z"
           }
         }
@@ -713,7 +781,7 @@
           }
         }
       },
-      "ProjectRef": {
+      "KeyRef": {
         "type": "object",
         "required": [
           "id",
@@ -722,7 +790,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "project-001"
+            "example": "PRJ-001"
           },
           "name": {
             "type": "string",
@@ -730,24 +798,7 @@
           }
         }
       },
-      "PackageRef": {
-        "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "package-001"
-          },
-          "name": {
-            "type": "string",
-            "example": "Documentazione requisiti"
-          }
-        }
-      },
-      "ParentPackageRef": {
+      "ParentSubKeyRef": {
         "type": "object",
         "nullable": true,
         "required": [
@@ -757,7 +808,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "package-001"
+            "example": "PKG-001"
           },
           "name": {
             "type": "string",
@@ -765,6 +816,27 @@
           }
         },
         "example": null
+      },
+      "SubKeyRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "parentSubKey"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "PKG-001"
+          },
+          "name": {
+            "type": "string",
+            "example": "Documentazione requisiti"
+          },
+          "parentSubKey": {
+            "$ref": "#/components/schemas/ParentSubKeyRef"
+          }
+        }
       },
       "FileInfo": {
         "type": "object",
@@ -776,7 +848,7 @@
         "properties": {
           "fileName": {
             "type": "string",
-            "example": "project-plan.txt"
+            "example": "document-key-plan.txt"
           },
           "mimeType": {
             "type": "string",
@@ -851,9 +923,9 @@
           "id",
           "title",
           "status",
-          "project",
-          "package",
-          "parentPackage",
+          "keyType",
+          "key",
+          "subKey",
           "owner",
           "fileInfo",
           "version",
@@ -885,31 +957,10 @@
             ],
             "example": "approved"
           },
-          "project": {
-            "$ref": "#/components/schemas/ProjectRef"
-          },
-          "package": {
-            "$ref": "#/components/schemas/PackageRef"
-          },
-          "parentPackage": {
-            "$ref": "#/components/schemas/ParentPackageRef"
-          },
-          "owner": {
-            "$ref": "#/components/schemas/DocumentOwner"
-          },
-          "fileInfo": {
-            "$ref": "#/components/schemas/FileInfo"
-          },
           "version": {
             "type": "integer",
             "minimum": 1,
             "example": 1
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": false,
-            "example": "2026-01-01T10:00:00.000Z"
           },
           "updatedAt": {
             "type": "string",
@@ -917,17 +968,38 @@
             "nullable": true,
             "example": null
           },
-          "archivedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "example": null
+          "owner": {
+            "$ref": "#/components/schemas/DocumentOwner"
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DocumentTag"
             }
+          },
+          "keyType": {
+            "type": "string",
+            "example": "project"
+          },
+          "key": {
+            "$ref": "#/components/schemas/KeyRef"
+          },
+          "subKey": {
+            "$ref": "#/components/schemas/SubKeyRef"
+          },
+          "fileInfo": {
+            "$ref": "#/components/schemas/FileInfo"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-01T10:00:00.000Z"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": null
           }
         }
       },
@@ -942,31 +1014,26 @@
           }
         }
       },
-      "DocumentPackageGroup": {
+      "DocumentSubKeyGroup": {
         "type": "object",
         "required": [
-          "project",
-          "id",
-          "name",
-          "parentPackage",
+          "keyType",
+          "key",
+          "subKey",
           "documentCount",
           "statusSummary",
           "documents"
         ],
         "properties": {
-          "project": {
-            "$ref": "#/components/schemas/ProjectRef"
-          },
-          "id": {
+          "keyType": {
             "type": "string",
-            "example": "package-001"
+            "example": "project"
           },
-          "name": {
-            "type": "string",
-            "example": "Documentazione requisiti"
+          "key": {
+            "$ref": "#/components/schemas/KeyRef"
           },
-          "parentPackage": {
-            "$ref": "#/components/schemas/ParentPackageRef"
+          "subKey": {
+            "$ref": "#/components/schemas/SubKeyRef"
           },
           "documentCount": {
             "type": "integer",
@@ -987,11 +1054,11 @@
       "DocumentHomeMeta": {
         "type": "object",
         "required": [
-          "totalPackages",
+          "totalSubKeys",
           "totalDocuments"
         ],
         "properties": {
-          "totalPackages": {
+          "totalSubKeys": {
             "type": "integer",
             "minimum": 0,
             "example": 1
@@ -1013,7 +1080,7 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DocumentPackageGroup"
+              "$ref": "#/components/schemas/DocumentSubKeyGroup"
             }
           },
           "meta": {
@@ -1021,26 +1088,25 @@
           }
         }
       },
-      "DocumentTreePackage": {
+      "DocumentTreeSubKey": {
         "type": "object",
         "required": [
-          "id",
-          "name",
-          "parentPackage",
+          "keyType",
+          "key",
+          "subKey",
           "documentCount",
           "statusSummary"
         ],
         "properties": {
-          "id": {
+          "keyType": {
             "type": "string",
-            "example": "package-001"
+            "example": "project"
           },
-          "name": {
-            "type": "string",
-            "example": "Documentazione requisiti"
+          "key": {
+            "$ref": "#/components/schemas/KeyRef"
           },
-          "parentPackage": {
-            "$ref": "#/components/schemas/ParentPackageRef"
+          "subKey": {
+            "$ref": "#/components/schemas/SubKeyRef"
           },
           "documentCount": {
             "type": "integer",
@@ -1055,11 +1121,11 @@
       "DocumentTreeMeta": {
         "type": "object",
         "required": [
-          "totalPackages",
+          "totalSubKeys",
           "totalDocuments"
         ],
         "properties": {
-          "totalPackages": {
+          "totalSubKeys": {
             "type": "integer",
             "minimum": 0,
             "example": 1
@@ -1081,7 +1147,7 @@
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DocumentTreePackage"
+              "$ref": "#/components/schemas/DocumentTreeSubKey"
             }
           },
           "meta": {

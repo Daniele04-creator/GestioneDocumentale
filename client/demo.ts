@@ -1,32 +1,34 @@
 import {
+  DocumentKeysApi,
   Configuration,
   HealthApi,
-  ProjectDocumentsApi,
   UpdateDocumentRequest,
 } from './index';
 
 const basePath = process.env.API_BASE_URL || 'http://localhost:3000';
-const projectId = 'project-001';
+const keyType = 'project';
+const key = 'PRJ-001';
 const documentId = 'DOC-001';
 
 const configuration = new Configuration({ basePath });
 const fetchApi = ((requestUrl: string, init?: any) =>
   fetch(requestUrl, init)) as any;
 const healthApi = new HealthApi(configuration, undefined, fetchApi);
-const documentsApi = new ProjectDocumentsApi(configuration, undefined, fetchApi);
+const documentsApi = new DocumentKeysApi(configuration, undefined, fetchApi);
 
 async function main() {
   const health = await healthApi.healthControllerGetHealth();
   console.log('health:', health.status);
 
-  const tree = await documentsApi.projectDocumentsControllerGetProjectDocumentTree(projectId);
+  const tree = await documentsApi.documentKeysControllerGetDocumentTree(keyType, key);
   console.log('document tree:', tree.meta.totalDocuments);
 
-  const list = await documentsApi.projectDocumentsControllerListProjectDocuments(projectId);
-  console.log('project documents:', list.meta.totalDocuments);
+  const list = await documentsApi.documentKeysControllerListDocuments(keyType, key);
+  console.log('key documents:', list.meta.totalDocuments);
 
-  const architetturaFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
+  const architetturaFilter = await documentsApi.documentKeysControllerListDocuments(
+    keyType,
+    key,
     undefined,
     undefined,
     'Architettura',
@@ -34,8 +36,9 @@ async function main() {
   assertDocumentsHaveTag(architetturaFilter, 'Architettura');
   console.log('tag Architettura:', architetturaFilter.meta.totalDocuments);
 
-  const qaFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
+  const qaFilter = await documentsApi.documentKeysControllerListDocuments(
+    keyType,
+    key,
     undefined,
     undefined,
     'QA',
@@ -43,8 +46,9 @@ async function main() {
   assertDocumentsHaveTag(qaFilter, 'QA');
   console.log('tag QA:', qaFilter.meta.totalDocuments);
 
-  const missingTagFilter = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
+  const missingTagFilter = await documentsApi.documentKeysControllerListDocuments(
+    keyType,
+    key,
     undefined,
     undefined,
     'TagInesistente',
@@ -52,15 +56,17 @@ async function main() {
   assertEmptyResult(missingTagFilter, 'missing tag');
   console.log('tag TagInesistente:', missingTagFilter.meta.totalDocuments);
 
-  const ownerSearch = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
+  const ownerSearch = await documentsApi.documentKeysControllerListDocuments(
+    keyType,
+    key,
     'Francesca',
   );
   assertHasDocuments(ownerSearch, 'search Francesca');
   console.log('search Francesca:', ownerSearch.meta.totalDocuments);
 
-  const apiSearch = await documentsApi.projectDocumentsControllerListProjectDocuments(
-    projectId,
+  const apiSearch = await documentsApi.documentKeysControllerListDocuments(
+    keyType,
+    key,
     'api',
   );
   assertHasDocuments(apiSearch, 'search api');
@@ -68,22 +74,25 @@ async function main() {
 
   await expectInvalidQueryParam();
 
-  const detail = await documentsApi.projectDocumentsControllerGetProjectDocumentById(
+  const detail = await documentsApi.documentKeysControllerGetDocumentById(
     documentId,
-    projectId,
+    keyType,
+    key,
   );
   console.log('document detail:', detail.data.id, detail.data.title);
 
-  const updated = await documentsApi.projectDocumentsControllerUpdateProjectDocument(
+  const updated = await documentsApi.documentKeysControllerUpdateDocument(
     { status: UpdateDocumentRequest.StatusEnum.InReview },
     documentId,
-    projectId,
+    keyType,
+    key,
   );
   console.log('updated status:', updated.data.status);
 
-  const archived = await documentsApi.projectDocumentsControllerArchiveProjectDocument(
+  const archived = await documentsApi.documentKeysControllerArchiveDocument(
     documentId,
-    projectId,
+    keyType,
+    key,
   );
   console.log('archived status:', archived.data.status);
 
@@ -91,8 +100,8 @@ async function main() {
 }
 
 function getDocuments(response: any) {
-  return response.data.flatMap((documentPackage: any) =>
-    documentPackage.documents || [],
+  return response.data.flatMap((documentGroup: any) =>
+    documentGroup.documents || [],
   );
 }
 
@@ -129,8 +138,9 @@ function assertHasDocuments(response: any, label: string) {
 
 async function expectInvalidQueryParam() {
   try {
-    await documentsApi.projectDocumentsControllerListProjectDocuments(
-      projectId,
+    await documentsApi.documentKeysControllerListDocuments(
+      keyType,
+      key,
       undefined,
       undefined,
       undefined,
@@ -146,10 +156,11 @@ async function expectInvalidQueryParam() {
 
 async function expectArchivedConflict() {
   try {
-    await documentsApi.projectDocumentsControllerUpdateProjectDocument(
+    await documentsApi.documentKeysControllerUpdateDocument(
       { status: UpdateDocumentRequest.StatusEnum.Approved },
       documentId,
-      projectId,
+      keyType,
+      key,
     );
     throw new Error('Expected 409 DOCUMENT_ARCHIVED, but the request succeeded.');
   } catch (error: any) {

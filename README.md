@@ -6,19 +6,22 @@ Il repository contiene il backend applicativo NestJS + TypeScript, un client Typ
 
 ## Contesto
 
-Il modulo documentale gestisce documenti collegati a un contesto progettuale:
+Il modulo documentale gestisce documenti collegati a un contenitore generale:
 
 ```text
-Progetto -> Package -> Documento
+keyType + key -> subKey -> Documento
 ```
 
 Ogni documento e' associato a:
 
-- un progetto;
-- un package;
+- un `keyType`, cioe' il tipo del contenitore generale;
+- una `key`, cioe' l'identificativo del contenitore generale;
+- una `subKey`, cioe' il sotto-elemento documentale;
 - un owner/responsabile documentale;
 - uno o piu' tag;
 - un file locale demo usato per il download.
+
+`keyType` rende il modulo riusabile per piu' contesti, ad esempio portfolio, program o project, senza legare il dominio documentale a una sola entita'.
 
 La generazione automatica o stampa da template non e' implementata direttamente in questo modulo. Eventuali documenti generati da servizi esterni sono trattati come documenti gia' disponibili nel repository documentale.
 
@@ -60,12 +63,12 @@ Endpoint principali:
 
 ```text
 GET    /api/v1/health
-GET    /api/v1/projects/{projectId}/document-tree
-GET    /api/v1/projects/{projectId}/documents
-GET    /api/v1/projects/{projectId}/documents/{documentId}
-GET    /api/v1/projects/{projectId}/documents/{documentId}/file
-PATCH  /api/v1/projects/{projectId}/documents/{documentId}
-DELETE /api/v1/projects/{projectId}/documents/{documentId}
+GET    /api/v1/document-keys/{keyType}/{key}/document-tree
+GET    /api/v1/document-keys/{keyType}/{key}/documents
+GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
+GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/file
+PATCH  /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
+DELETE /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 ```
 
 Il backend usa lo schema PostgreSQL esistente e mantiene `synchronize: false` in TypeORM. Il download usa `file_info.storagePath` internamente, ma non espone `storagePath` nelle response pubbliche.
@@ -86,10 +89,10 @@ OpenAPI e client restano materiali di supporto: il backend applicativo mantenuto
 
 La home documentale usa un caricamento progressivo:
 
-1. all'apertura, il frontend chiama `GET /api/v1/projects/{projectId}/document-tree`;
-2. la UI mostra i package con `documentCount` e `statusSummary`;
-3. quando l'utente espande un package, il frontend chiama `GET /api/v1/projects/{projectId}/documents?packageId=...`;
-4. per filtri globali come `tag`, `status` e `search`, il frontend usa `GET /api/v1/projects/{projectId}/documents` con query params.
+1. all'apertura, il frontend chiama `GET /api/v1/document-keys/{keyType}/{key}/document-tree`;
+2. la UI mostra i `subKey` con `documentCount` e `statusSummary`;
+3. quando l'utente espande un `subKey`, il frontend chiama `GET /api/v1/document-keys/{keyType}/{key}/documents?subKey=...`;
+4. per filtri globali come `tag`, `status` e `search`, il frontend usa `GET /api/v1/document-keys/{keyType}/{key}/documents` con query params.
 
 In questo modo la pagina carica subito una struttura leggera e recupera i documenti completi solo quando servono.
 
@@ -104,8 +107,8 @@ database/seed.sql
 
 Lo schema crea le tabelle principali:
 
-- `projects`
-- `packages`
+- `document_keys`
+- `document_sub_keys`
 - `owners`
 - `documents`
 - `tags`

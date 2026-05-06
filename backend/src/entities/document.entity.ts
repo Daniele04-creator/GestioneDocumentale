@@ -6,9 +6,9 @@ import {
 	OneToMany,
 	PrimaryColumn,
 } from "typeorm";
+import { DocumentSubKey } from "./document-sub-key.entity";
 import { DocumentTag } from "./document-tag.entity";
 import { Owner } from "./owner.entity";
-import { Package } from "./package.entity";
 
 export type DocumentStatus = "draft" | "in_review" | "approved" | "archived";
 
@@ -22,10 +22,16 @@ export type DocumentFileInfo = {
 @Entity("documents")
 export class Document {
 	@PrimaryColumn({ type: "varchar", length: 30 })
+	id!: string;
+
+	@Column({ name: "key_type", type: "varchar", length: 50 })
+	keyType!: string;
+
+	@Column({ name: "key_value", type: "varchar", length: 100 })
 	key!: string;
 
-	@Column({ name: "package_id", type: "varchar", length: 100 })
-	subkey!: string;
+	@Column({ name: "sub_key", type: "varchar", length: 100 })
+	subKey!: string;
 
 	@Column({ name: "owner_id", type: "varchar", length: 100 })
 	ownerId!: string;
@@ -55,11 +61,15 @@ export class Document {
 	archivedAt?: Date | null;
 
 	@ManyToOne(
-		() => Package,
-		(documentPackage) => documentPackage.documents,
+		() => DocumentSubKey,
+		(documentSubKey) => documentSubKey.documents,
 	)
-	@JoinColumn({ name: "package_id" })
-	package!: Package;
+	@JoinColumn([
+		{ name: "key_type", referencedColumnName: "keyType" },
+		{ name: "key_value", referencedColumnName: "key" },
+		{ name: "sub_key", referencedColumnName: "subKey" },
+	])
+	documentSubKey!: DocumentSubKey;
 
 	@ManyToOne(
 		() => Owner,

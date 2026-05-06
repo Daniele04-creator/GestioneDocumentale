@@ -1,5 +1,7 @@
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
-const PROJECT_ID = 'project-001';
+const KEY_TYPE = 'project';
+const KEY = 'PRJ-001';
+const SUB_KEY = 'PKG-001';
 const DOCUMENT_ID = 'DOC-001';
 
 const results = [];
@@ -15,8 +17,8 @@ function assert(condition, message) {
 }
 
 function getDocuments(groupedResponse) {
-  return (groupedResponse.data || []).flatMap((documentPackage) =>
-    documentPackage.documents || [],
+  return (groupedResponse.data || []).flatMap((documentGroup) =>
+    documentGroup.documents || [],
   );
 }
 
@@ -82,31 +84,31 @@ async function main() {
     assert(body.status === 'ok', 'Expected status ok.');
   });
 
-  await runTest('GET project documents returns documents', async () => {
-    const body = await expectJson('GET', `/api/v1/projects/${PROJECT_ID}/documents`, 200);
+  await runTest('GET documents by key returns documents', async () => {
+    const body = await expectJson('GET', `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`, 200);
     assert(Array.isArray(body.data), 'Expected data array.');
     assert(body.meta && body.meta.totalDocuments > 0, 'Expected meta.totalDocuments > 0.');
   });
 
-  await runTest('GET project document tree returns lightweight structure', async () => {
-    const body = await expectJson('GET', `/api/v1/projects/${PROJECT_ID}/document-tree`, 200);
+  await runTest('GET document tree by key returns lightweight structure', async () => {
+    const body = await expectJson('GET', `/api/v1/document-keys/${KEY_TYPE}/${KEY}/document-tree`, 200);
     assert(Array.isArray(body.data), 'Expected data array.');
-    assert(body.data.length > 0, 'Expected at least one package.');
+    assert(body.data.length > 0, 'Expected at least one subKey.');
     assert(body.meta && body.meta.totalDocuments > 0, 'Expected meta.totalDocuments > 0.');
 
-    const firstPackage = body.data[0];
-    assert(firstPackage.documentCount >= 1, 'Expected package documentCount.');
-    assert(firstPackage.statusSummary, 'Expected package statusSummary.');
+    const firstSubKey = body.data[0];
+    assert(firstSubKey.documentCount >= 1, 'Expected subKey documentCount.');
+    assert(firstSubKey.statusSummary, 'Expected subKey statusSummary.');
     assert(
-      !Object.prototype.hasOwnProperty.call(firstPackage, 'documents'),
-      'Document tree packages must not contain full documents array.',
+      !Object.prototype.hasOwnProperty.call(firstSubKey, 'documents'),
+      'Document tree subKeys must not contain full documents array.',
     );
   });
 
-  await runTest('GET project documents by tag Architettura', async () => {
+  await runTest('GET documents by tag Architettura', async () => {
     const body = await expectJson(
       'GET',
-      `/api/v1/projects/${PROJECT_ID}/documents?tag=Architettura`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents?tag=Architettura`,
       200,
     );
     const documents = getDocuments(body);
@@ -117,19 +119,33 @@ async function main() {
     );
   });
 
-  await runTest('GET project documents by search Francesca', async () => {
+  await runTest('GET documents by search Francesca', async () => {
     const body = await expectJson(
       'GET',
-      `/api/v1/projects/${PROJECT_ID}/documents?search=Francesca`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents?search=Francesca`,
       200,
     );
     assert(Array.isArray(body.data), 'Expected data array.');
   });
 
-  await runTest('GET project documents with wrong query param returns INVALID_QUERY_PARAM', async () => {
+  await runTest('GET documents by subKey returns only that subKey', async () => {
     const body = await expectJson(
       'GET',
-      `/api/v1/projects/${PROJECT_ID}/documents?wrongParam=1`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents?subKey=${SUB_KEY}`,
+      200,
+    );
+    assert(Array.isArray(body.data), 'Expected data array.');
+    assert(body.data.length > 0, 'Expected at least one subKey group.');
+    assert(
+      body.data.every((group) => group.subKey && group.subKey.id === SUB_KEY),
+      `Expected every group to use subKey ${SUB_KEY}.`,
+    );
+  });
+
+  await runTest('GET documents with wrong query param returns INVALID_QUERY_PARAM', async () => {
+    const body = await expectJson(
+      'GET',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents?wrongParam=1`,
       400,
     );
     assert(body.code === 'INVALID_QUERY_PARAM', `Expected INVALID_QUERY_PARAM, got ${body.code}.`);
@@ -138,7 +154,7 @@ async function main() {
   await runTest('GET DOC-001 detail returns public fileInfo only', async () => {
     const body = await expectJson(
       'GET',
-      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${DOCUMENT_ID}`,
       200,
     );
     assert(body.data && body.data.id === DOCUMENT_ID, `Expected data.id ${DOCUMENT_ID}.`);
@@ -150,14 +166,14 @@ async function main() {
   });
 
   await runTest('GET DOC-999 returns DOCUMENT_NOT_FOUND', async () => {
-    const body = await expectJson('GET', `/api/v1/projects/${PROJECT_ID}/documents/DOC-999`, 404);
+    const body = await expectJson('GET', `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/DOC-999`, 404);
     assert(body.code === 'DOCUMENT_NOT_FOUND', `Expected DOCUMENT_NOT_FOUND, got ${body.code}.`);
   });
 
   await runTest('GET invalid document id returns INVALID_DOCUMENT_ID', async () => {
     const body = await expectJson(
       'GET',
-      `/api/v1/projects/${PROJECT_ID}/documents/not-existing-document-id`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/not-existing-document-id`,
       400,
     );
     assert(body.code === 'INVALID_DOCUMENT_ID', `Expected INVALID_DOCUMENT_ID, got ${body.code}.`);
@@ -166,7 +182,7 @@ async function main() {
   await runTest('GET DOC-001 file returns 200', async () => {
     const result = await request(
       'GET',
-      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}/file`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${DOCUMENT_ID}/file`,
     );
     assert(result.response.status === 200, `Expected status 200, got ${result.response.status}.`);
     assert(String(result.body).length > 0, 'Expected non-empty file response.');
@@ -175,7 +191,7 @@ async function main() {
   await runTest('PATCH DOC-001 status to in_review', async () => {
     const body = await expectJson(
       'PATCH',
-      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${DOCUMENT_ID}`,
       200,
       { status: 'in_review' },
     );
@@ -185,7 +201,7 @@ async function main() {
   await runTest('PATCH DOC-001 ownerId returns INVALID_DOCUMENT_PATCH', async () => {
     const body = await expectJson(
       'PATCH',
-      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${DOCUMENT_ID}`,
       400,
       { ownerId: 'owner-002' },
     );
@@ -198,7 +214,7 @@ async function main() {
   await runTest('DELETE DOC-001 archives document', async () => {
     const body = await expectJson(
       'DELETE',
-      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${DOCUMENT_ID}`,
       200,
     );
     assert(body.data && body.data.status === 'archived', 'Expected status archived.');
@@ -207,7 +223,7 @@ async function main() {
   await runTest('PATCH archived DOC-001 returns DOCUMENT_ARCHIVED', async () => {
     const body = await expectJson(
       'PATCH',
-      `/api/v1/projects/${PROJECT_ID}/documents/${DOCUMENT_ID}`,
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${DOCUMENT_ID}`,
       409,
       { status: 'approved' },
     );

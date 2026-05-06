@@ -11,7 +11,7 @@ export const DOCUMENT_STATUS_VALUES: DocumentStatus[] = [
 export class DocumentQueryDto {
 	@IsOptional()
 	@IsString()
-	packageId?: string;
+	subKey?: string;
 
 	@IsOptional()
 	@IsString()

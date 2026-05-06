@@ -1,1 +1,1 @@
-Demo API contract notes for project-scoped document endpoints, response shape, errors, and download behavior.              
+Demo API contract notes for key-scoped document endpoints, response shape, errors, and download behavior.              

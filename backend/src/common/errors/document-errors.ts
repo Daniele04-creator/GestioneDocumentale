@@ -30,10 +30,10 @@ export function invalidDocumentPatch(message = "Invalid document patch.") {
 	});
 }
 
-export function projectNotFound() {
+export function keyNotFound() {
 	return new NotFoundException({
-		code: "PROJECT_NOT_FOUND",
-		message: "Project not found.",
+		code: "KEY_NOT_FOUND",
+		message: "Document key not found.",
 	});
 }
 

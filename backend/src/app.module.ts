@@ -2,10 +2,10 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Document } from "./entities/document.entity";
+import { DocumentKey } from "./entities/document-key.entity";
+import { DocumentSubKey } from "./entities/document-sub-key.entity";
 import { DocumentTag } from "./entities/document-tag.entity";
 import { Owner } from "./entities/owner.entity";
-import { Package } from "./entities/package.entity";
-import { Project } from "./entities/project.entity";
 import { Tag } from "./entities/tag.entity";
 import { DocumentsModule } from "./modules/documents.module";
 import { HealthModule } from "./modules/health.module";
@@ -45,7 +45,14 @@ import { HealthModule } from "./modules/health.module";
 					(config.get<string>("DATABASE_SSL") ?? "false") === "true"
 						? { rejectUnauthorized: false }
 						: false,
-				entities: [Project, Package, Owner, Document, Tag, DocumentTag],
+				entities: [
+					DocumentKey,
+					DocumentSubKey,
+					Owner,
+					Document,
+					Tag,
+					DocumentTag,
+				],
 				synchronize: false,
 			}),
 		}),

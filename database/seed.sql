@@ -1,24 +1,23 @@
-INSERT INTO projects (id, name)
+INSERT INTO document_keys (key_type, key_value, name)
 VALUES
-  ('project-001', 'Management as Code Demo'),
-  ('project-002', 'Frontend Migration'),
-  ('project-003', 'Document Module Validation')
-ON CONFLICT (id) DO UPDATE
+  ('project', 'PRJ-001', 'Management as Code Demo'),
+  ('program', 'PROG-001', 'Frontend Migration'),
+  ('project', 'PRJ-002', 'Document Module Validation')
+ON CONFLICT (key_type, key_value) DO UPDATE
 SET name = EXCLUDED.name;
 
-INSERT INTO packages (id, project_id, parent_package_id, name)
+INSERT INTO document_sub_keys (key_type, key_value, sub_key, parent_sub_key, name)
 VALUES
-  ('package-001', 'project-001', NULL, 'Documentazione requisiti'),
-  ('package-002', 'project-001', NULL, 'Documentazione architettura'),
-  ('package-007', 'project-001', 'package-001', 'Specifiche funzionali'),
-  ('package-003', 'project-002', NULL, 'UI Mockup'),
-  ('package-004', 'project-002', NULL, 'React Migration'),
-  ('package-005', 'project-003', NULL, 'API Validation'),
-  ('package-006', 'project-003', NULL, 'Test Documentation')
-ON CONFLICT (id) DO UPDATE
+  ('project', 'PRJ-001', 'PKG-001', NULL, 'Documentazione requisiti'),
+  ('project', 'PRJ-001', 'PKG-002', NULL, 'Documentazione architettura'),
+  ('project', 'PRJ-001', 'PKG-007', 'PKG-001', 'Specifiche funzionali'),
+  ('program', 'PROG-001', 'PKG-003', NULL, 'UI Mockup'),
+  ('program', 'PROG-001', 'PKG-004', NULL, 'React Migration'),
+  ('project', 'PRJ-002', 'PKG-005', NULL, 'API Validation'),
+  ('project', 'PRJ-002', 'PKG-006', NULL, 'Test Documentation')
+ON CONFLICT (key_type, key_value, sub_key) DO UPDATE
 SET
-  project_id = EXCLUDED.project_id,
-  parent_package_id = EXCLUDED.parent_package_id,
+  parent_sub_key = EXCLUDED.parent_sub_key,
   name = EXCLUDED.name;
 
 INSERT INTO owners (id, name)
@@ -52,7 +51,9 @@ ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO documents (
   id,
-  package_id,
+  key_type,
+  key_value,
+  sub_key,
   owner_id,
   title,
   description,
@@ -66,12 +67,14 @@ INSERT INTO documents (
 VALUES
 (
   'DOC-001',
-  'package-001',
+  'project',
+  'PRJ-001',
+  'PKG-001',
   'owner-001',
   'Specifica SRS',
   'Documento dei requisiti software per il prototipo documentale',
   'draft',
-  '{"fileName":"project-plan.txt","mimeType":"text/plain","sizeBytes":136,"storagePath":"storage/documents/project-plan.txt"}'::jsonb,
+  '{"fileName":"document-key-plan.txt","mimeType":"text/plain","sizeBytes":136,"storagePath":"storage/documents/document-key-plan.txt"}'::jsonb,
   1,
   now(),
   NULL,
@@ -79,10 +82,12 @@ VALUES
 ),
 (
   'DOC-002',
-  'package-001',
+  'project',
+  'PRJ-001',
+  'PKG-001',
   'owner-001',
   'SRS architecture overview',
-  'Architecture overview used while preparing the SRS package',
+  'Architecture overview used while preparing the SRS subKey',
   'approved',
   '{"fileName":"architecture-overview.txt","mimeType":"text/plain","sizeBytes":129,"storagePath":"storage/documents/architecture-overview.txt"}'::jsonb,
   1,
@@ -92,7 +97,9 @@ VALUES
 ),
 (
   'DOC-003',
-  'package-001',
+  'project',
+  'PRJ-001',
+  'PKG-001',
   'owner-002',
   'Risk register',
   'Risk register for the Management as Code demo',
@@ -105,7 +112,9 @@ VALUES
 ),
 (
   'DOC-004',
-  'package-001',
+  'project',
+  'PRJ-001',
+  'PKG-001',
   'owner-003',
   'Integration checklist',
   'Archived checklist for early integration checks',
@@ -118,10 +127,12 @@ VALUES
 ),
 (
   'DOC-005',
-  'package-002',
+  'project',
+  'PRJ-001',
+  'PKG-002',
   'owner-002',
   'WBS structure notes',
-  'Notes about package level work breakdown',
+  'Notes about subKey level work breakdown',
   'in_review',
   '{"fileName":"wbs-structure-notes.txt","mimeType":"text/plain","sizeBytes":141,"storagePath":"storage/documents/wbs-structure-notes.txt"}'::jsonb,
   1,
@@ -131,10 +142,12 @@ VALUES
 ),
 (
   'DOC-006',
-  'package-002',
+  'project',
+  'PRJ-001',
+  'PKG-002',
   'owner-004',
   'Document API contract',
-  'API contract for package based document browsing',
+  'API contract for subKey based document browsing',
   'approved',
   '{"fileName":"document-api-contract.txt","mimeType":"text/plain","sizeBytes":123,"storagePath":"storage/documents/document-api-contract.txt"}'::jsonb,
   1,
@@ -144,7 +157,9 @@ VALUES
 ),
 (
   'DOC-007',
-  'package-007',
+  'project',
+  'PRJ-001',
+  'PKG-007',
   'owner-001',
   'Functional requirements draft',
   'Draft document with functional requirements and architecture notes',
@@ -157,7 +172,9 @@ VALUES
 ),
 (
   'DOC-008',
-  'package-003',
+  'program',
+  'PROG-001',
+  'PKG-003',
   'owner-003',
   'Kickoff meeting minutes',
   'Minutes from the frontend migration kickoff meeting',
@@ -170,10 +187,12 @@ VALUES
 ),
 (
   'DOC-009',
-  'package-003',
+  'program',
+  'PROG-001',
+  'PKG-003',
   'owner-004',
   'Document home mockup notes',
-  'Notes for the first document home mockup and package navigation',
+  'Notes for the first document home mockup and subKey navigation',
   'draft',
   '{"fileName":"document-home-notes.txt","mimeType":"text/plain","sizeBytes":125,"storagePath":"storage/documents/document-home-notes.txt"}'::jsonb,
   1,
@@ -183,7 +202,9 @@ VALUES
 ),
 (
   'DOC-010',
-  'package-003',
+  'program',
+  'PROG-001',
+  'PKG-003',
   'owner-005',
   'UI integration checklist',
   'Checklist for connecting the UI mockup to the backend',
@@ -196,7 +217,9 @@ VALUES
 ),
 (
   'DOC-011',
-  'package-004',
+  'program',
+  'PROG-001',
+  'PKG-004',
   'owner-002',
   'API consumption notes',
   'Notes for consuming the grouped document API from a frontend client',
@@ -209,7 +232,9 @@ VALUES
 ),
 (
   'DOC-012',
-  'package-004',
+  'program',
+  'PROG-001',
+  'PKG-004',
   'owner-004',
   'React page mapping',
   'Draft mapping between possible React pages and backend calls',
@@ -222,10 +247,12 @@ VALUES
 ),
 (
   'DOC-013',
-  'package-004',
+  'program',
+  'PROG-001',
+  'PKG-004',
   'owner-003',
   'State management notes',
-  'Notes about frontend state for filters and selected packages',
+  'Notes about frontend state for filters and selected subKeys',
   'in_review',
   '{"fileName":"state-management-notes.txt","mimeType":"text/plain","sizeBytes":127,"storagePath":"storage/documents/state-management-notes.txt"}'::jsonb,
   1,
@@ -235,7 +262,9 @@ VALUES
 ),
 (
   'DOC-014',
-  'package-004',
+  'program',
+  'PROG-001',
+  'PKG-004',
   'owner-005',
   'Frontend validation report',
   'Archived validation report for the frontend migration demo',
@@ -248,7 +277,9 @@ VALUES
 ),
 (
   'DOC-015',
-  'package-005',
+  'project',
+  'PRJ-002',
+  'PKG-005',
   'owner-001',
   'Document validation plan',
   'Plan for validating filters, grouping, summaries, and file downloads',
@@ -261,10 +292,12 @@ VALUES
 ),
 (
   'DOC-016',
-  'package-006',
+  'project',
+  'PRJ-002',
+  'PKG-006',
   'owner-002',
   'Download test matrix',
-  'Matrix for checking file downloads across projects and packages',
+  'Matrix for checking file downloads across document keys and subKeys',
   'in_review',
   '{"fileName":"download-test-matrix.txt","mimeType":"text/plain","sizeBytes":109,"storagePath":"storage/documents/download-test-matrix.txt"}'::jsonb,
   1,
@@ -274,7 +307,9 @@ VALUES
 ),
 (
   'DOC-017',
-  'package-006',
+  'project',
+  'PRJ-002',
+  'PKG-006',
   'owner-004',
   'Postman test checklist',
   'Checklist for validating Postman requests against the document API',
@@ -287,7 +322,9 @@ VALUES
 ),
 (
   'DOC-018',
-  'package-006',
+  'project',
+  'PRJ-002',
+  'PKG-006',
   'owner-005',
   'Tag review',
   'Review of document tags used for classification and search',
@@ -300,7 +337,9 @@ VALUES
 ),
 (
   'DOC-019',
-  'package-006',
+  'project',
+  'PRJ-002',
+  'PKG-006',
   'owner-005',
   'Final validation summary',
   'Archived summary of document module validation results',
@@ -313,7 +352,9 @@ VALUES
 )
 ON CONFLICT (id) DO UPDATE
 SET
-  package_id = EXCLUDED.package_id,
+  key_type = EXCLUDED.key_type,
+  key_value = EXCLUDED.key_value,
+  sub_key = EXCLUDED.sub_key,
   owner_id = EXCLUDED.owner_id,
   title = EXCLUDED.title,
   description = EXCLUDED.description,

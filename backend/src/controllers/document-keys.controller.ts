@@ -23,31 +23,37 @@ const patchValidationPipe = new ValidationPipe({
 	exceptionFactory: () => invalidDocumentPatch(),
 });
 
-@Controller("api/v1/projects/:projectId")
-export class ProjectDocumentsController {
+@Controller("api/v1/document-keys/:keyType/:key")
+export class DocumentKeysController {
 	constructor(private readonly documentsService: DocumentsService) {}
 
 	@Get("document-tree")
-	getProjectDocumentTree(@Param("projectId") projectId: string) {
-		return this.documentsService.getProjectDocumentTree(projectId);
+	getDocumentTree(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
+	) {
+		return this.documentsService.getDocumentTree(keyType, key);
 	}
 
 	@Get("documents")
-	listProjectDocuments(
-		@Param("projectId") projectId: string,
+	listDocuments(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
 		@Query() query: Record<string, unknown>,
 	) {
-		return this.documentsService.getProjectDocuments(projectId, query);
+		return this.documentsService.getDocuments(keyType, key, query);
 	}
 
 	@Get("documents/:documentId/file")
-	async downloadProjectDocumentFile(
-		@Param("projectId") projectId: string,
+	async downloadDocumentFile(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
 		@Param("documentId") documentId: string,
 		@Res({ passthrough: true }) response: Response,
 	) {
-		const file = await this.documentsService.getProjectDocumentFile(
-			projectId,
+		const file = await this.documentsService.getDocumentFile(
+			keyType,
+			key,
 			documentId,
 		);
 
@@ -60,25 +66,29 @@ export class ProjectDocumentsController {
 	}
 
 	@Get("documents/:documentId")
-	async getProjectDocumentById(
-		@Param("projectId") projectId: string,
+	async getDocumentById(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
 		@Param("documentId") documentId: string,
 	) {
-		const document = await this.documentsService.getProjectDocumentById(
-			projectId,
+		const document = await this.documentsService.getDocumentById(
+			keyType,
+			key,
 			documentId,
 		);
 		return { data: document };
 	}
 
 	@Patch("documents/:documentId")
-	async updateProjectDocument(
-		@Param("projectId") projectId: string,
+	async updateDocument(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
 		@Param("documentId") documentId: string,
 		@Body(patchValidationPipe) body: UpdateDocumentDto,
 	) {
-		const document = await this.documentsService.updateProjectDocument(
-			projectId,
+		const document = await this.documentsService.updateDocument(
+			keyType,
+			key,
 			documentId,
 			body,
 		);
@@ -86,12 +96,14 @@ export class ProjectDocumentsController {
 	}
 
 	@Delete("documents/:documentId")
-	async archiveProjectDocument(
-		@Param("projectId") projectId: string,
+	async archiveDocument(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
 		@Param("documentId") documentId: string,
 	) {
-		const document = await this.documentsService.archiveProjectDocument(
-			projectId,
+		const document = await this.documentsService.archiveDocument(
+			keyType,
+			key,
 			documentId,
 		);
 		return { data: document };
