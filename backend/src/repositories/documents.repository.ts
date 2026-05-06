@@ -9,7 +9,6 @@ export type DocumentFilters = {
 	keyType: string;
 	key: string;
 	subKey?: string;
-	ownerId?: string;
 	tag?: string;
 	status?: DocumentStatus;
 };
@@ -22,14 +21,6 @@ export type PublicFileInfo = {
 
 export type InternalFileInfo = PublicFileInfo & {
 	storagePath: string;
-};
-
-export type DocumentVersionRow = {
-	documentId: string;
-	version: number;
-	fileInfo: PublicFileInfo;
-	checksumSha256: string;
-	createdAt: string;
 };
 
 export type DocumentRow = {
@@ -46,7 +37,6 @@ export type DocumentRow = {
 		name: string;
 		parentSubKey: { id: string; name: string } | null;
 	};
-	owner: { id: string; name: string };
 	fileInfo?: PublicFileInfo;
 	checksumSha256: string;
 	version: number;
@@ -82,7 +72,6 @@ export type CreateDocumentInput = {
 	subKey: string;
 	documentKey: string;
 	metadata: DocumentMetadata;
-	ownerId: string;
 	status?: Exclude<DocumentStatus, "archived">;
 	fileInfo: InternalFileInfo;
 	checksumSha256: string;
@@ -93,6 +82,7 @@ export type CreateDocumentInput = {
 export type UpsertGeneratedDocumentResult = {
 	document?: DocumentRow;
 	storedFileUsed: boolean;
+	previousFileInfo?: InternalFileInfo;
 };
 
 type ExistingLogicalDocumentRow = {
@@ -100,27 +90,19 @@ type ExistingLogicalDocumentRow = {
 	version: number;
 	status: DocumentStatus;
 	checksum_sha256: string;
+	file_info: InternalFileInfo;
 };
 
 type UpdateGeneratedDocumentFields = {
 	metadata: DocumentMetadata;
-	ownerId: string;
 	status?: Exclude<DocumentStatus, "archived">;
 	updatedAt: string;
 };
 
-type UpdateGeneratedDocumentVersionFields = UpdateGeneratedDocumentFields & {
+type UpdateGeneratedCurrentFileFields = UpdateGeneratedDocumentFields & {
 	version: number;
 	fileInfo: InternalFileInfo;
 	checksumSha256: string;
-};
-
-type InsertDocumentVersionInput = {
-	documentId: string;
-	version: number;
-	fileInfo: InternalFileInfo;
-	checksumSha256: string;
-	createdAt: string;
 };
 
 @Injectable()
@@ -135,7 +117,6 @@ export class DocumentsRepository {
 		this.addPlainFilter(where, params, "d.key_value", filters.key);
 		this.addPlainFilter(where, params, "d.sub_key", filters.subKey);
 		this.addPlainFilter(where, params, "d.status", filters.status);
-		this.addPlainFilter(where, params, "o.id", filters.ownerId);
 		this.addTagFilter(where, params, filters.tag);
 
 		const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
@@ -223,56 +204,6 @@ export class DocumentsRepository {
 		return rows[0]?.file_info;
 	}
 
-	async findVersionsByKeyAndId(
-		keyType: string,
-		key: string,
-		documentId: string,
-	): Promise<DocumentVersionRow[]> {
-		const rows = await this.dataSource.query(
-			`
-				SELECT
-					dv.document_id,
-					dv.version,
-					dv.file_info,
-					dv.checksum_sha256,
-					dv.created_at
-				FROM document_versions dv
-				JOIN documents d ON d.id = dv.document_id
-				WHERE d.key_type = $1
-					AND d.key_value = $2
-					AND d.id = $3
-				ORDER BY dv.version
-			`,
-			[keyType, key, documentId],
-		);
-
-		return rows.map((row: Record<string, unknown>) =>
-			this.mapDocumentVersionRow(row),
-		);
-	}
-
-	async findVersionFileInfoByKeyAndId(
-		keyType: string,
-		key: string,
-		documentId: string,
-		version: number,
-	): Promise<InternalFileInfo | undefined> {
-		const rows = await this.dataSource.query(
-			`
-				SELECT dv.file_info
-				FROM document_versions dv
-				JOIN documents d ON d.id = dv.document_id
-				WHERE d.key_type = $1
-					AND d.key_value = $2
-					AND d.id = $3
-					AND dv.version = $4
-			`,
-			[keyType, key, documentId, version],
-		);
-
-		return rows[0]?.file_info;
-	}
-
 	async findDocumentTreeByKey(
 		keyType: string,
 		key: string,
@@ -349,15 +280,6 @@ export class DocumentsRepository {
 		return rows.length > 0;
 	}
 
-	async ownerExists(ownerId: string): Promise<boolean> {
-		const rows = await this.dataSource.query(
-			"SELECT 1 FROM owners WHERE id = $1 LIMIT 1",
-			[ownerId],
-		);
-
-		return rows.length > 0;
-	}
-
 	async upsertGeneratedDocument(
 		keyType: string,
 		key: string,
@@ -382,7 +304,6 @@ export class DocumentsRepository {
 						existingDocument.id,
 						{
 							metadata: input.metadata,
-							ownerId: input.ownerId,
 							status: input.status,
 							updatedAt,
 						},
@@ -400,25 +321,13 @@ export class DocumentsRepository {
 				}
 
 				const nextVersion = Number(existingDocument.version) + 1;
-				await this.updateGeneratedDocumentVersion(
-					manager,
-					existingDocument.id,
-					{
-						metadata: input.metadata,
-						ownerId: input.ownerId,
-						status: input.status,
-						version: nextVersion,
-						fileInfo: input.fileInfo,
-						checksumSha256: input.checksumSha256,
-						updatedAt,
-					},
-				);
-				await this.insertDocumentVersion(manager, {
-					documentId: existingDocument.id,
+				await this.updateGeneratedCurrentFile(manager, existingDocument.id, {
+					metadata: input.metadata,
+					status: input.status,
 					version: nextVersion,
 					fileInfo: input.fileInfo,
 					checksumSha256: input.checksumSha256,
-					createdAt: updatedAt,
+					updatedAt,
 				});
 				await this.syncDocumentTagsIfNeeded(
 					manager,
@@ -429,6 +338,7 @@ export class DocumentsRepository {
 				return {
 					documentId: existingDocument.id,
 					storedFileUsed: true,
+					previousFileInfo: existingDocument.file_info,
 				};
 			}
 
@@ -443,7 +353,6 @@ export class DocumentsRepository {
 						key_value,
 						sub_key,
 						document_key,
-						owner_id,
 						metadata,
 						status,
 						file_info,
@@ -459,13 +368,12 @@ export class DocumentsRepository {
 						$3,
 						$4,
 						$5,
-						$6,
-						$7::jsonb,
-						$8,
-						$9::jsonb,
-						$10,
+						$6::jsonb,
+						$7,
+						$8::jsonb,
+						$9,
 						1,
-						$11,
+						$10,
 						NULL,
 						NULL
 					)
@@ -476,7 +384,6 @@ export class DocumentsRepository {
 					key,
 					input.subKey,
 					input.documentKey,
-					input.ownerId,
 					JSON.stringify(input.metadata),
 					input.status ?? "draft",
 					JSON.stringify(input.fileInfo),
@@ -485,13 +392,6 @@ export class DocumentsRepository {
 				],
 			);
 
-			await this.insertDocumentVersion(manager, {
-				documentId: nextDocumentId,
-				version: 1,
-				fileInfo: input.fileInfo,
-				checksumSha256: input.checksumSha256,
-				createdAt,
-			});
 			await this.syncDocumentTags(manager, nextDocumentId, input.tags ?? []);
 
 			return {
@@ -503,6 +403,7 @@ export class DocumentsRepository {
 		return {
 			document: await this.findByKeyAndId(keyType, key, result.documentId),
 			storedFileUsed: result.storedFileUsed,
+			previousFileInfo: result.previousFileInfo,
 		};
 	}
 
@@ -570,7 +471,7 @@ export class DocumentsRepository {
 	): Promise<ExistingLogicalDocumentRow | undefined> {
 		const rows = await manager.query(
 			`
-				SELECT id, version, status, checksum_sha256
+				SELECT id, version, status, checksum_sha256, file_info
 				FROM documents
 				WHERE key_type = $1
 					AND key_value = $2
@@ -589,16 +490,8 @@ export class DocumentsRepository {
 		documentId: string,
 		input: UpdateGeneratedDocumentFields,
 	) {
-		const setClauses = [
-			"metadata = $1::jsonb",
-			"owner_id = $2",
-			"updated_at = $3",
-		];
-		const values: unknown[] = [
-			JSON.stringify(input.metadata),
-			input.ownerId,
-			input.updatedAt,
-		];
+		const setClauses = ["metadata = $1::jsonb", "updated_at = $2"];
+		const values: unknown[] = [JSON.stringify(input.metadata), input.updatedAt];
 
 		if (input.status !== undefined) {
 			values.push(input.status);
@@ -617,22 +510,20 @@ export class DocumentsRepository {
 		);
 	}
 
-	private async updateGeneratedDocumentVersion(
+	private async updateGeneratedCurrentFile(
 		manager: EntityManager,
 		documentId: string,
-		input: UpdateGeneratedDocumentVersionFields,
+		input: UpdateGeneratedCurrentFileFields,
 	) {
 		const setClauses = [
 			"metadata = $1::jsonb",
-			"owner_id = $2",
-			"version = $3",
-			"file_info = $4::jsonb",
-			"checksum_sha256 = $5",
-			"updated_at = $6",
+			"version = $2",
+			"file_info = $3::jsonb",
+			"checksum_sha256 = $4",
+			"updated_at = $5",
 		];
 		const values: unknown[] = [
 			JSON.stringify(input.metadata),
-			input.ownerId,
 			input.version,
 			JSON.stringify(input.fileInfo),
 			input.checksumSha256,
@@ -653,31 +544,6 @@ export class DocumentsRepository {
 				WHERE id = $${values.length}
 			`,
 			values,
-		);
-	}
-
-	private async insertDocumentVersion(
-		manager: EntityManager,
-		input: InsertDocumentVersionInput,
-	) {
-		await manager.query(
-			`
-				INSERT INTO document_versions (
-					document_id,
-					version,
-					file_info,
-					checksum_sha256,
-					created_at
-				)
-				VALUES ($1, $2, $3::jsonb, $4, $5)
-			`,
-			[
-				input.documentId,
-				input.version,
-				JSON.stringify(input.fileInfo),
-				input.checksumSha256,
-				input.createdAt,
-			],
 		);
 	}
 
@@ -841,10 +707,6 @@ export class DocumentsRepository {
 						}
 					: null,
 			},
-			owner: {
-				id: String(row.owner_id),
-				name: String(row.owner_name),
-			},
 			fileInfo: this.sanitizePublicFileInfo(
 				row.file_info as InternalFileInfo | undefined,
 			),
@@ -853,20 +715,6 @@ export class DocumentsRepository {
 			createdAt: this.toIsoString(row.created_at),
 			updatedAt: row.updated_at ? this.toIsoString(row.updated_at) : null,
 			archivedAt: row.archived_at ? this.toIsoString(row.archived_at) : null,
-		};
-	}
-
-	private mapDocumentVersionRow(
-		row: Record<string, unknown>,
-	): DocumentVersionRow {
-		return {
-			documentId: String(row.document_id),
-			version: Number(row.version),
-			fileInfo: this.sanitizePublicFileInfo(
-				row.file_info as InternalFileInfo | undefined,
-			) as PublicFileInfo,
-			checksumSha256: String(row.checksum_sha256),
-			createdAt: this.toIsoString(row.created_at),
 		};
 	}
 
@@ -909,8 +757,6 @@ export class DocumentsRepository {
 			d.created_at,
 			d.updated_at,
 			d.archived_at,
-			o.id AS owner_id,
-			o.name AS owner_name,
 			d.key_type,
 			d.key_value,
 			dk.name AS key_name,
@@ -931,7 +777,6 @@ export class DocumentsRepository {
 			JOIN document_keys dk
 				ON dk.key_type = ds.key_type
 				AND dk.key_value = ds.key_value
-			JOIN owners o ON d.owner_id = o.id
 			LEFT JOIN document_sub_keys parent_ds
 				ON parent_ds.key_type = ds.key_type
 				AND parent_ds.key_value = ds.key_value

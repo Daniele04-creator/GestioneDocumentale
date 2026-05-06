@@ -57,11 +57,6 @@ export interface DocumentTag {
     name: string;
 }
 
-export interface DocumentOwner {
-    id: string;
-    name: string;
-}
-
 export interface DocumentMetadata {
     title: string;
     description?: string;
@@ -109,7 +104,6 @@ export interface DocumentListItem {
     version: number;
     checksumSha256: string;
     updatedAt: Date | null;
-    owner: DocumentOwner;
     tags: Array<DocumentTag>;
 }
 
@@ -142,18 +136,6 @@ export namespace DocumentDetail {
 
 export interface DocumentDetailResponse {
     data: DocumentDetail;
-}
-
-export interface DocumentVersion {
-    documentId: string;
-    version: number;
-    fileInfo: FileInfo;
-    checksumSha256: string;
-    createdAt: Date;
-}
-
-export interface DocumentVersionsResponse {
-    data: Array<DocumentVersion>;
 }
 
 export interface DocumentSubKeyGroup {
@@ -203,7 +185,6 @@ export interface CreateDocumentRequest {
     templateName?: string;
     title?: string;
     description?: string | null;
-    ownerId: string;
     status?: CreateDocumentRequest.StatusEnum;
     tags?: Array<string>;
 }
@@ -250,14 +231,12 @@ export class DocumentKeysApi extends BaseAPI {
         key: string,
         status?: string,
         tag?: string,
-        ownerId?: string,
         subKey?: string,
         options: any = {},
     ): Promise<DocumentHomeResponse> {
         const query = new URLSearchParams();
         if (status !== undefined) query.set("status", status);
         if (tag !== undefined) query.set("tag", tag);
-        if (ownerId !== undefined) query.set("ownerId", ownerId);
         if (subKey !== undefined) query.set("subKey", subKey);
         if (options.query) {
             for (const [name, value] of Object.entries(options.query)) {
@@ -283,7 +262,6 @@ export class DocumentKeysApi extends BaseAPI {
         if (body.templateId !== undefined) formData.append("templateId", body.templateId);
         if (body.templateName !== undefined) formData.append("templateName", body.templateName);
         if (body.title !== undefined) formData.append("title", body.title);
-        formData.append("ownerId", body.ownerId);
         if (body.description !== undefined && body.description !== null) formData.append("description", body.description);
         if (body.status !== undefined) formData.append("status", String(body.status));
         for (const tag of body.tags || []) formData.append("tags", tag);
@@ -299,23 +277,6 @@ export class DocumentKeysApi extends BaseAPI {
             `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents/${encodeURIComponent(documentId)}`,
             Object.assign({ method: "GET" }, options),
         );
-    }
-
-    public documentKeysControllerGetDocumentVersions(documentId: string, keyType: string, key: string, options?: any): Promise<DocumentVersionsResponse> {
-        return this.request<DocumentVersionsResponse>(
-            `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents/${encodeURIComponent(documentId)}/versions`,
-            Object.assign({ method: "GET" }, options),
-        );
-    }
-
-    public documentKeysControllerDownloadDocumentVersionFile(documentId: string, version: number, keyType: string, key: string, options?: any): Promise<Blob> {
-        return this.fetch(
-            this.basePath + `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(String(version))}/file`,
-            Object.assign({ method: "GET" }, options),
-        ).then((response) => {
-            if (response.status >= 200 && response.status < 300) return response.blob();
-            throw response;
-        });
     }
 
     public documentKeysControllerDownloadDocumentFile(documentId: string, keyType: string, key: string, options?: any): Promise<Blob> {

@@ -6,8 +6,6 @@ import { Document } from "../entities/document.entity";
 import { DocumentKey } from "../entities/document-key.entity";
 import { DocumentSubKey } from "../entities/document-sub-key.entity";
 import { DocumentTag } from "../entities/document-tag.entity";
-import { DocumentVersion } from "../entities/document-version.entity";
-import { Owner } from "../entities/owner.entity";
 import { Tag } from "../entities/tag.entity";
 
 dotenv.config({
@@ -32,15 +30,7 @@ export const AppDataSource = new DataSource({
 		(process.env.DATABASE_SSL ?? "false") === "true"
 			? { rejectUnauthorized: false }
 			: false,
-	entities: [
-		DocumentKey,
-		DocumentSubKey,
-		Owner,
-		Document,
-		DocumentVersion,
-		Tag,
-		DocumentTag,
-	],
+	entities: [DocumentKey, DocumentSubKey, Document, Tag, DocumentTag],
 	migrations: [path.join(__dirname, "migrations", "*.{ts,js}")],
 	synchronize: false,
 });

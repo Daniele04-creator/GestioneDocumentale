@@ -8,8 +8,6 @@ import {
 } from "typeorm";
 import { DocumentSubKey } from "./document-sub-key.entity";
 import { DocumentTag } from "./document-tag.entity";
-import { DocumentVersion } from "./document-version.entity";
-import { Owner } from "./owner.entity";
 
 export type DocumentStatus = "draft" | "in_review" | "approved" | "archived";
 
@@ -52,9 +50,6 @@ export class Document {
 	@Column({ name: "document_key", type: "varchar", length: 150 })
 	documentKey!: string;
 
-	@Column({ name: "owner_id", type: "varchar", length: 100 })
-	ownerId!: string;
-
 	@Column({ type: "jsonb" })
 	metadata!: DocumentMetadata;
 
@@ -90,22 +85,9 @@ export class Document {
 	])
 	documentSubKey!: DocumentSubKey;
 
-	@ManyToOne(
-		() => Owner,
-		(owner) => owner.documents,
-	)
-	@JoinColumn({ name: "owner_id" })
-	owner!: Owner;
-
 	@OneToMany(
 		() => DocumentTag,
 		(documentTag) => documentTag.document,
 	)
 	documentTags!: DocumentTag[];
-
-	@OneToMany(
-		() => DocumentVersion,
-		(documentVersion) => documentVersion.document,
-	)
-	versions!: DocumentVersion[];
 }

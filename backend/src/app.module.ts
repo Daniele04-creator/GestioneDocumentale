@@ -5,8 +5,6 @@ import { Document } from "./entities/document.entity";
 import { DocumentKey } from "./entities/document-key.entity";
 import { DocumentSubKey } from "./entities/document-sub-key.entity";
 import { DocumentTag } from "./entities/document-tag.entity";
-import { DocumentVersion } from "./entities/document-version.entity";
-import { Owner } from "./entities/owner.entity";
 import { Tag } from "./entities/tag.entity";
 import { DocumentsModule } from "./modules/documents.module";
 import { HealthModule } from "./modules/health.module";
@@ -46,15 +44,7 @@ import { HealthModule } from "./modules/health.module";
 					(config.get<string>("DATABASE_SSL") ?? "false") === "true"
 						? { rejectUnauthorized: false }
 						: false,
-				entities: [
-					DocumentKey,
-					DocumentSubKey,
-					Owner,
-					Document,
-					DocumentVersion,
-					Tag,
-					DocumentTag,
-				],
+				entities: [DocumentKey, DocumentSubKey, Document, Tag, DocumentTag],
 				synchronize: false,
 			}),
 		}),

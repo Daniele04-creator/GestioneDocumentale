@@ -22,8 +22,12 @@ const CREATE_DOCUMENT_BODY = {
     description: 'Documento demo registrato dallo smoke test.',
     templateId: 'TPL-REPORT-SMOKE',
     templateName: 'Template report smoke test',
+    owner: {
+      id: 'USR-123',
+      name: 'Mario Rossi',
+      source: 'external-user-service',
+    },
   },
-  ownerId: 'owner-001',
   status: 'draft',
   tags: ['Report', 'Progress'],
 };
@@ -129,7 +133,6 @@ async function buildCreateDocumentForm(
   if (body.templateId !== undefined) formData.append('templateId', body.templateId);
   if (body.templateName !== undefined) formData.append('templateName', body.templateName);
   if (body.title !== undefined) formData.append('title', body.title);
-  if (body.ownerId !== undefined) formData.append('ownerId', body.ownerId);
   if (body.description !== undefined) formData.append('description', body.description);
   if (body.status !== undefined) formData.append('status', body.status);
   for (const tag of body.tags || []) formData.append('tags', tag);
@@ -150,7 +153,6 @@ function buildCreateDocumentFormWithoutFile(overrides = {}) {
   if (body.templateId !== undefined) formData.append('templateId', body.templateId);
   if (body.templateName !== undefined) formData.append('templateName', body.templateName);
   if (body.title !== undefined) formData.append('title', body.title);
-  if (body.ownerId !== undefined) formData.append('ownerId', body.ownerId);
   if (body.description !== undefined) formData.append('description', body.description);
   if (body.status !== undefined) formData.append('status', body.status);
   for (const tag of body.tags || []) formData.append('tags', tag);
@@ -277,6 +279,11 @@ async function main() {
     assert(body.data.documentKey === CREATE_DOCUMENT_KEY, 'Expected created documentKey.');
     assert(body.data.metadata, 'Expected document metadata.');
     assert(body.data.metadata.templateId === CREATE_DOCUMENT_BODY.metadata.templateId, 'Expected metadata.templateId.');
+    assert(body.data.metadata.owner && body.data.metadata.owner.id === CREATE_DOCUMENT_BODY.metadata.owner.id, 'Expected metadata.owner snapshot.');
+    assert(
+      !Object.prototype.hasOwnProperty.call(body.data, 'owner'),
+      'Document response must not expose owner as top-level field.',
+    );
     assert(body.data.metadata.title === CREATE_DOCUMENT_BODY.metadata.title, 'Expected metadata.title.');
     assert(body.data.title === CREATE_DOCUMENT_BODY.metadata.title, 'Expected derived created title.');
     assert(body.data.status === 'draft', 'Expected default draft status.');
@@ -324,13 +331,6 @@ async function main() {
     );
     assert(documentHasTag(body.data, 'Report'), 'Expected existing Report tag to be preserved.');
     assert(documentHasTag(body.data, 'Progress'), 'Expected existing Progress tag to be preserved.');
-
-    const versions = await expectJson(
-      'GET',
-      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}/versions`,
-      200,
-    );
-    assert(versions.data.length === 1, 'Expected only one version after same checksum update.');
   });
 
   await runTest('POST same documentKey and different file creates version 2', async () => {
@@ -362,26 +362,8 @@ async function main() {
     assert(body.data.status === 'approved', 'Expected updated current status.');
     assert(body.data.checksumSha256 !== firstVersionChecksum, 'Expected new checksum.');
     assert(secondVersionFileName !== firstVersionFileName, 'Expected a new stored file name.');
-    assert(await fileExists(firstVersionFileName), 'Expected old version file to still exist.');
+    assert(!(await fileExists(firstVersionFileName)), 'Expected old current file to be removed after replacement.');
     assert(await fileExists(secondVersionFileName), 'Expected new version file to exist.');
-  });
-
-  await runTest('GET versions returns document history', async () => {
-    assert(createdDocumentId, 'Created document id is missing.');
-    const body = await expectJson(
-      'GET',
-      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}/versions`,
-      200,
-    );
-    assert(Array.isArray(body.data), 'Expected versions data array.');
-    assert(body.data.length === 2, 'Expected two versions.');
-    assert(body.data[0].version === 1, 'Expected first version number 1.');
-    assert(body.data[1].version === 2, 'Expected second version number 2.');
-    assert(body.data[0].checksumSha256 === firstVersionChecksum, 'Expected version 1 checksum.');
-    assert(
-      !Object.prototype.hasOwnProperty.call(body.data[0].fileInfo, 'storagePath'),
-      'version fileInfo must not expose storagePath.',
-    );
   });
 
   await runTest('GET documents contains current created document version', async () => {
@@ -423,19 +405,6 @@ async function main() {
     );
   });
 
-  await runTest('GET version 1 file still returns old content', async () => {
-    assert(createdDocumentId, 'Created document id is missing.');
-    const result = await request(
-      'GET',
-      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}/versions/1/file`,
-    );
-    assert(result.response.status === 200, `Expected status 200, got ${result.response.status}.`);
-    assert(
-      !String(result.body).includes('Seconda versione smoke test.'),
-      'Expected version 1 file not to contain version 2 content.',
-    );
-  });
-
   await runTest('POST documents with missing subKey returns SUB_KEY_NOT_FOUND', async () => {
     const formData = await buildCreateDocumentForm({
       subKey: 'PKG-NOT-FOUND',
@@ -473,24 +442,6 @@ async function main() {
     );
   });
 
-  await runTest('POST documents with missing owner returns OWNER_NOT_FOUND', async () => {
-    const formData = await buildCreateDocumentForm({
-      documentKey: `${CREATE_DOCUMENT_KEY}-OWNER-NOT-FOUND`,
-      ownerId: 'owner-not-found',
-      metadata: {
-        ...CREATE_DOCUMENT_BODY.metadata,
-        title: 'Missing owner smoke test',
-      },
-    });
-    const body = await expectJson(
-      'POST',
-      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
-      404,
-      formData,
-    );
-    assert(body.code === 'OWNER_NOT_FOUND', `Expected OWNER_NOT_FOUND, got ${body.code}.`);
-  });
-
   await runTest('POST documents without file returns INVALID_DOCUMENT_FILE', async () => {
     const body = await expectJson(
       'POST',
@@ -517,6 +468,10 @@ async function main() {
     );
     assert(body.data && body.data.id === DOCUMENT_ID, `Expected data.id ${DOCUMENT_ID}.`);
     assert(body.data.fileInfo, 'Expected fileInfo.');
+    assert(
+      !Object.prototype.hasOwnProperty.call(body.data, 'owner'),
+      'Document detail must not expose owner as top-level field.',
+    );
     assert(
       !Object.prototype.hasOwnProperty.call(body.data.fileInfo, 'storagePath'),
       'fileInfo must not expose storagePath.',
@@ -554,19 +509,6 @@ async function main() {
       { status: 'in_review' },
     );
     assert(body.data && body.data.status === 'in_review', 'Expected status in_review.');
-  });
-
-  await runTest('PATCH DOC-001 ownerId returns INVALID_DOCUMENT_PATCH', async () => {
-    const body = await expectJson(
-      'PATCH',
-      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${DOCUMENT_ID}`,
-      400,
-      { ownerId: 'owner-002' },
-    );
-    assert(
-      body.code === 'INVALID_DOCUMENT_PATCH',
-      `Expected INVALID_DOCUMENT_PATCH, got ${body.code}.`,
-    );
   });
 
   await runTest('DELETE DOC-001 archives document', async () => {

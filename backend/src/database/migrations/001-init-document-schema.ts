@@ -41,23 +41,12 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 		`);
 
 		await queryRunner.query(`
-			CREATE TABLE owners (
-				id VARCHAR(100) NOT NULL,
-				name VARCHAR(200) NOT NULL,
-				created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-				CONSTRAINT pk_owners PRIMARY KEY (id),
-				CONSTRAINT chk_owners_name_not_empty CHECK (length(trim(name)) > 0)
-			)
-		`);
-
-		await queryRunner.query(`
 			CREATE TABLE documents (
 				id VARCHAR(30) NOT NULL,
 				key_type VARCHAR(50) NOT NULL,
 				key_value VARCHAR(100) NOT NULL,
 				sub_key VARCHAR(100) NOT NULL,
 				document_key VARCHAR(150) NOT NULL,
-				owner_id VARCHAR(100) NOT NULL,
 				metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
 				status VARCHAR(30) NOT NULL CHECK (status IN ('draft', 'in_review', 'approved', 'archived')),
 				file_info JSONB NOT NULL,
@@ -69,9 +58,6 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 				CONSTRAINT pk_documents PRIMARY KEY (id),
 				CONSTRAINT fk_documents_sub_key FOREIGN KEY (key_type, key_value, sub_key)
 					REFERENCES document_sub_keys(key_type, key_value, sub_key)
-					ON DELETE RESTRICT,
-				CONSTRAINT fk_documents_owner FOREIGN KEY (owner_id)
-					REFERENCES owners(id)
 					ON DELETE RESTRICT,
 				CONSTRAINT uq_documents_logical_key UNIQUE (key_type, key_value, sub_key, document_key),
 				CONSTRAINT chk_documents_id_format CHECK (id ~ '^DOC-[0-9]{3,}$'),
@@ -100,35 +86,6 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 				CONSTRAINT chk_documents_archived_at_status CHECK (
 					(status = 'archived' AND archived_at IS NOT NULL)
 					OR (status <> 'archived' AND archived_at IS NULL)
-				)
-			)
-		`);
-
-		await queryRunner.query(`
-			CREATE TABLE document_versions (
-				document_id VARCHAR(30) NOT NULL,
-				version INTEGER NOT NULL CHECK (version >= 1),
-				file_info JSONB NOT NULL,
-				checksum_sha256 VARCHAR(64) NOT NULL,
-				created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-				CONSTRAINT pk_document_versions PRIMARY KEY (document_id, version),
-				CONSTRAINT fk_document_versions_document FOREIGN KEY (document_id)
-					REFERENCES documents(id)
-					ON DELETE CASCADE,
-				CONSTRAINT chk_document_versions_checksum_sha256 CHECK (checksum_sha256 ~ '^[a-f0-9]{64}$'),
-				CONSTRAINT chk_document_versions_file_info CHECK (
-					file_info ? 'fileName'
-					AND file_info ? 'mimeType'
-					AND file_info ? 'sizeBytes'
-					AND file_info ? 'storagePath'
-					AND jsonb_typeof(file_info->'fileName') = 'string'
-					AND btrim(file_info->>'fileName') <> ''
-					AND jsonb_typeof(file_info->'mimeType') = 'string'
-					AND btrim(file_info->>'mimeType') <> ''
-					AND jsonb_typeof(file_info->'storagePath') = 'string'
-					AND btrim(file_info->>'storagePath') <> ''
-					AND jsonb_typeof(file_info->'sizeBytes') = 'number'
-					AND (file_info->>'sizeBytes')::numeric >= 0
 				)
 			)
 		`);
@@ -169,7 +126,6 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 		await queryRunner.query(
 			"CREATE INDEX idx_document_sub_keys_name ON document_sub_keys(name)",
 		);
-		await queryRunner.query("CREATE INDEX idx_owners_name ON owners(name)");
 		await queryRunner.query(
 			"CREATE INDEX idx_documents_key ON documents(key_type, key_value)",
 		);
@@ -180,9 +136,6 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 			"CREATE INDEX idx_documents_document_key ON documents(document_key)",
 		);
 		await queryRunner.query(
-			"CREATE INDEX idx_documents_owner_id ON documents(owner_id)",
-		);
-		await queryRunner.query(
 			"CREATE INDEX idx_documents_status ON documents(status)",
 		);
 		await queryRunner.query(
@@ -190,9 +143,6 @@ export class InitDocumentSchema1778076000000 implements MigrationInterface {
 		);
 		await queryRunner.query(
 			"CREATE INDEX idx_documents_updated_at ON documents(updated_at)",
-		);
-		await queryRunner.query(
-			"CREATE INDEX idx_document_versions_document_id ON document_versions(document_id)",
 		);
 		await queryRunner.query("CREATE INDEX idx_tags_name ON tags(name)");
 		await queryRunner.query(

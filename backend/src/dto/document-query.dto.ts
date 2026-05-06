@@ -15,10 +15,6 @@ export class DocumentQueryDto {
 
 	@IsOptional()
 	@IsString()
-	ownerId?: string;
-
-	@IsOptional()
-	@IsString()
 	tag?: string;
 
 	@IsOptional()

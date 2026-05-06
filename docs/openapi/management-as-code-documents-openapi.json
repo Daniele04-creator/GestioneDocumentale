@@ -89,7 +89,7 @@
     },
     "/api/v1/document-keys/{keyType}/{key}/documents": {
       "get": {
-        "description": "Restituisce i documenti del contenitore documentale, raggruppati per subKey. La ricerca documentale avviene tramite tag; restano disponibili filtri tecnici per subKey, status e ownerId.",
+        "description": "Restituisce i documenti del contenitore documentale, raggruppati per subKey. La ricerca documentale avviene tramite tag; restano disponibili filtri tecnici per subKey e status.",
         "operationId": "DocumentKeysController_listDocuments",
         "parameters": [
           {
@@ -116,15 +116,6 @@
               "example": "Architettura"
             },
             "description": "Nome tag usato come criterio di ricerca documentale case-insensitive."
-          },
-          {
-            "name": "ownerId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "example": "owner-001"
-            },
-            "description": "Filtro tecnico per owner del documento."
           },
           {
             "name": "subKey",
@@ -212,7 +203,7 @@
         ]
       },
       "post": {
-        "description": "Acquisisce un documento finale prodotto da un modulo esterno. Se documentKey non esiste nel contesto keyType/key/subKey crea un nuovo documento versione 1; se esiste e il checksum SHA-256 e uguale aggiorna solo i metadati; se esiste e il checksum cambia salva una nuova versione senza sovrascrivere i file precedenti.",
+        "description": "Acquisisce un documento finale prodotto da un modulo esterno. Se documentKey non esiste nel contesto keyType/key/subKey crea un nuovo documento versione 1; se esiste e il checksum SHA-256 e uguale aggiorna solo i metadati; se esiste e il checksum cambia aggiorna il documento corrente, incrementa version e sostituisce il file corrente senza mantenere storico fisico.",
         "operationId": "DocumentKeysController_createDocument",
         "parameters": [
           {
@@ -250,8 +241,7 @@
                     "file": "<binary file>",
                     "subKey": "PKG-001",
                     "documentKey": "TPL-REPORT-MENSILE-2026-01",
-                    "metadata": "{\"title\":\"Report avanzamento\",\"description\":\"Documento prodotto da una funzione esterna\",\"templateId\":\"TPL-REPORT-MENSILE\",\"templateName\":\"Template report mensile\"}",
-                    "ownerId": "owner-001",
+                    "metadata": "{\"title\":\"Report avanzamento\",\"description\":\"Documento prodotto da una funzione esterna\",\"templateId\":\"TPL-REPORT-MENSILE\",\"templateName\":\"Template report mensile\",\"owner\":{\"id\":\"USR-123\",\"name\":\"Mario Rossi\",\"source\":\"external-user-service\"}}",
                     "status": "draft",
                     "tags": [
                       "Report",
@@ -265,7 +255,7 @@
         },
         "responses": {
           "201": {
-            "description": "Document created, metadata updated, or new version registered.",
+            "description": "Document created, metadata updated, or current file version replaced.",
             "content": {
               "application/json": {
                 "schema": {
@@ -301,7 +291,7 @@
             }
           },
           "404": {
-            "description": "Referenced key, subKey or owner was not found.",
+            "description": "Referenced key or subKey was not found.",
             "content": {
               "application/json": {
                 "schema": {
@@ -321,20 +311,13 @@
                       "code": "SUB_KEY_NOT_FOUND",
                       "message": "Document sub key not found."
                     }
-                  },
-                  "OWNER_NOT_FOUND": {
-                    "summary": "OWNER_NOT_FOUND",
-                    "value": {
-                      "code": "OWNER_NOT_FOUND",
-                      "message": "Document owner not found."
-                    }
                   }
                 }
               }
             }
           }
         },
-        "summary": "Acquire or version generated document",
+        "summary": "Acquire or update generated document",
         "tags": [
           "Document keys"
         ]
@@ -784,238 +767,6 @@
           "Document keys"
         ]
       }
-    },
-    "/api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions": {
-      "get": {
-        "tags": [
-          "Document keys"
-        ],
-        "summary": "List document versions",
-        "description": "Restituisce lo storico delle versioni file per un documento nel contesto indicato.",
-        "operationId": "DocumentKeysController_getDocumentVersions",
-        "parameters": [
-          {
-            "name": "keyType",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "example": "project"
-            },
-            "description": "Tipo del contenitore documentale"
-          },
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "example": "PRJ-001"
-            },
-            "description": "Identificativo del contenitore documentale"
-          },
-          {
-            "name": "documentId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "pattern": "^DOC-[0-9]{3,}$",
-              "example": "DOC-001"
-            },
-            "description": "ID del documento"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Document versions.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DocumentVersionsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid document id.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                },
-                "examples": {
-                  "INVALID_DOCUMENT_ID": {
-                    "summary": "INVALID_DOCUMENT_ID",
-                    "value": {
-                      "code": "INVALID_DOCUMENT_ID",
-                      "message": "Invalid document id."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Key or document not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                },
-                "examples": {
-                  "KEY_NOT_FOUND": {
-                    "summary": "KEY_NOT_FOUND",
-                    "value": {
-                      "code": "KEY_NOT_FOUND",
-                      "message": "Document key not found."
-                    }
-                  },
-                  "DOCUMENT_NOT_FOUND": {
-                    "summary": "DOCUMENT_NOT_FOUND",
-                    "value": {
-                      "code": "DOCUMENT_NOT_FOUND",
-                      "message": "Document not found."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions/{version}/file": {
-      "get": {
-        "tags": [
-          "Document keys"
-        ],
-        "summary": "Download document version file",
-        "description": "Scarica il file associato a una versione storica del documento.",
-        "operationId": "DocumentKeysController_downloadDocumentVersionFile",
-        "parameters": [
-          {
-            "name": "keyType",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "example": "project"
-            },
-            "description": "Tipo del contenitore documentale"
-          },
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "example": "PRJ-001"
-            },
-            "description": "Identificativo del contenitore documentale"
-          },
-          {
-            "name": "documentId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "pattern": "^DOC-[0-9]{3,}$",
-              "example": "DOC-001"
-            },
-            "description": "ID del documento"
-          },
-          {
-            "name": "version",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "example": 1
-            },
-            "description": "Versione storica del documento"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Version file stream.",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              },
-              "text/plain": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid document id or version.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                },
-                "examples": {
-                  "INVALID_DOCUMENT_ID": {
-                    "summary": "INVALID_DOCUMENT_ID",
-                    "value": {
-                      "code": "INVALID_DOCUMENT_ID",
-                      "message": "Invalid document id."
-                    }
-                  },
-                  "INVALID_QUERY_PARAM": {
-                    "summary": "INVALID_QUERY_PARAM",
-                    "value": {
-                      "code": "INVALID_QUERY_PARAM",
-                      "message": "Invalid document version."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Key, document, version or file not found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                },
-                "examples": {
-                  "KEY_NOT_FOUND": {
-                    "summary": "KEY_NOT_FOUND",
-                    "value": {
-                      "code": "KEY_NOT_FOUND",
-                      "message": "Document key not found."
-                    }
-                  },
-                  "DOCUMENT_NOT_FOUND": {
-                    "summary": "DOCUMENT_NOT_FOUND",
-                    "value": {
-                      "code": "DOCUMENT_NOT_FOUND",
-                      "message": "Document not found."
-                    }
-                  },
-                  "DOCUMENT_FILE_NOT_FOUND": {
-                    "summary": "DOCUMENT_FILE_NOT_FOUND",
-                    "value": {
-                      "code": "DOCUMENT_FILE_NOT_FOUND",
-                      "message": "Document file not found."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "info": {
@@ -1120,23 +871,6 @@
           }
         }
       },
-      "DocumentOwner": {
-        "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "owner-001"
-          },
-          "name": {
-            "type": "string",
-            "example": "Francesca R"
-          }
-        }
-      },
       "KeyRef": {
         "type": "object",
         "required": [
@@ -1225,7 +959,6 @@
           "status",
           "version",
           "updatedAt",
-          "owner",
           "tags",
           "documentKey",
           "metadata",
@@ -1277,9 +1010,6 @@
             "nullable": true,
             "example": null
           },
-          "owner": {
-            "$ref": "#/components/schemas/DocumentOwner"
-          },
           "tags": {
             "type": "array",
             "items": {
@@ -1300,7 +1030,6 @@
           "keyType",
           "key",
           "subKey",
-          "owner",
           "fileInfo",
           "version",
           "createdAt",
@@ -1356,9 +1085,6 @@
             "format": "date-time",
             "nullable": true,
             "example": null
-          },
-          "owner": {
-            "$ref": "#/components/schemas/DocumentOwner"
           },
           "tags": {
             "type": "array",
@@ -1633,7 +1359,6 @@
         "required": [
           "file",
           "subKey",
-          "ownerId",
           "documentKey"
         ],
         "properties": {
@@ -1675,10 +1400,6 @@
             "example": "Documento prodotto da una funzione esterna",
             "description": "Campo legacy: viene salvato in metadata.description."
           },
-          "ownerId": {
-            "type": "string",
-            "example": "owner-001"
-          },
           "status": {
             "type": "string",
             "enum": [
@@ -1703,55 +1424,7 @@
           "metadata": {
             "type": "string",
             "description": "JSON string con i metadati descrittivi del documento. Deve contenere almeno metadata.title. I campi legacy title/description/templateId/templateName restano supportati come fallback.",
-            "example": "{\"title\":\"Report avanzamento\",\"description\":\"Documento prodotto da una funzione esterna\",\"templateId\":\"TPL-REPORT\",\"templateName\":\"Template report mensile\"}"
-          }
-        }
-      },
-      "DocumentVersion": {
-        "type": "object",
-        "required": [
-          "documentId",
-          "version",
-          "fileInfo",
-          "checksumSha256",
-          "createdAt"
-        ],
-        "properties": {
-          "documentId": {
-            "type": "string",
-            "example": "DOC-020"
-          },
-          "version": {
-            "type": "integer",
-            "minimum": 1,
-            "example": 1
-          },
-          "fileInfo": {
-            "$ref": "#/components/schemas/FileInfo"
-          },
-          "checksumSha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$",
-            "example": "3286318d7c501f31d48312f3226a78acd7619e716313ede1548047b476cdce3e"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2026-01-01T10:00:00.000Z"
-          }
-        }
-      },
-      "DocumentVersionsResponse": {
-        "type": "object",
-        "required": [
-          "data"
-        ],
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DocumentVersion"
-            }
+            "example": "{\"title\":\"Report avanzamento\",\"description\":\"Documento prodotto da una funzione esterna\",\"templateId\":\"TPL-REPORT\",\"templateName\":\"Template report\",\"owner\":{\"id\":\"USR-123\",\"name\":\"Mario Rossi\",\"source\":\"external-user-service\"}}"
           }
         }
       },
@@ -1784,11 +1457,11 @@
             "properties": {
               "id": {
                 "type": "string",
-                "example": "owner-001"
+                "example": "USR-123"
               },
               "name": {
                 "type": "string",
-                "example": "Francesca R"
+                "example": "Mario Rossi"
               },
               "email": {
                 "type": "string",
@@ -1796,9 +1469,10 @@
               },
               "source": {
                 "type": "string",
-                "example": "external-system"
+                "example": "external-user-service"
               }
-            }
+            },
+            "description": "Snapshot opzionale dell owner proveniente da un servizio esterno. Il modulo documentale non gestisce owner locali."
           },
           "source": {
             "type": "object",

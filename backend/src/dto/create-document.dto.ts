@@ -47,10 +47,6 @@ export class CreateDocumentDto {
 	@IsOptional()
 	metadata?: unknown;
 
-	@IsString()
-	@MinLength(1)
-	ownerId!: string;
-
 	@IsOptional()
 	@IsIn(CREATE_DOCUMENT_STATUS_VALUES)
 	status?: Exclude<DocumentStatus, "archived">;

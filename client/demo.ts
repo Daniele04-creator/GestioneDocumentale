@@ -83,8 +83,12 @@ async function main() {
         description: 'Documento demo registrato dal client TypeScript Fetch',
         templateId: 'TPL-REPORT-DEMO',
         templateName: 'Template report demo',
+        owner: {
+          id: 'USR-123',
+          name: 'Mario Rossi',
+          source: 'external-user-service',
+        },
       },
-      ownerId: 'owner-001',
       status: CreateDocumentRequest.StatusEnum.Draft,
       tags: ['Report', 'Progress'],
     },
@@ -110,8 +114,12 @@ async function main() {
         description: 'Aggiornamento metadati con stesso contenuto file',
         templateId: 'TPL-REPORT-DEMO',
         templateName: 'Template report demo',
+        owner: {
+          id: 'USR-123',
+          name: 'Mario Rossi',
+          source: 'external-user-service',
+        },
       },
-      ownerId: 'owner-001',
       status: CreateDocumentRequest.StatusEnum.InReview,
       tags: ['Report', 'Progress', 'Demo'],
     },
@@ -133,8 +141,12 @@ async function main() {
         description: 'Nuova versione con contenuto file diverso',
         templateId: 'TPL-REPORT-DEMO',
         templateName: 'Template report demo',
+        owner: {
+          id: 'USR-123',
+          name: 'Mario Rossi',
+          source: 'external-user-service',
+        },
       },
-      ownerId: 'owner-001',
       status: CreateDocumentRequest.StatusEnum.Approved,
       tags: ['Report', 'Progress', 'Demo'],
     },
@@ -143,23 +155,10 @@ async function main() {
   );
   console.log('new file version:', secondVersion.data.id, `v${secondVersion.data.version}`);
 
-  const versions = await documentsApi.documentKeysControllerGetDocumentVersions(
-    secondVersion.data.id,
-    keyType,
-    key,
-  );
-  if (versions.data.length < 2) {
-    throw new Error('Expected at least two versions for the demo document.');
+  if (secondVersion.data.version < 2) {
+    throw new Error('Expected current version to increase with a different file.');
   }
-  console.log('document versions:', versions.data.map((item) => item.version).join(', '));
-
-  await documentsApi.documentKeysControllerDownloadDocumentVersionFile(
-    secondVersion.data.id,
-    1,
-    keyType,
-    key,
-  );
-  console.log('downloaded historical version: 1');
+  console.log('current document version:', secondVersion.data.version);
 
   const detail = await documentsApi.documentKeysControllerGetDocumentById(
     documentId,
@@ -185,7 +184,7 @@ async function main() {
   console.log('archived status:', archived.data.status);
 
   await expectArchivedConflict(mutableDocumentId);
-  console.log('demo uploaded files kept in storage/documents for version history.');
+  console.log('demo keeps only the current uploaded file for the logical document.');
 }
 
 function getDocuments(response: any) {
@@ -241,7 +240,6 @@ async function expectInvalidQueryParam() {
     await documentsApi.documentKeysControllerListDocuments(
       keyType,
       key,
-      undefined,
       undefined,
       undefined,
       undefined,

@@ -19,7 +19,6 @@ Ogni documento e' associato a:
 - una `subKey`, cioe' il sotto-elemento documentale;
 - un `documentKey`, cioe' la chiave logica del documento nel contesto `keyType + key + subKey`;
 - un oggetto `metadata` JSONB con metadati descrittivi variabili, ad esempio `title`, `description`, `templateId` e `templateName`;
-- un owner/responsabile documentale;
 - uno o piu' tag;
 - un file locale demo usato per il download.
 
@@ -70,8 +69,6 @@ GET    /api/v1/document-keys/{keyType}/{key}/documents
 POST   /api/v1/document-keys/{keyType}/{key}/documents
 GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/file
-GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions
-GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions/{version}/file
 PATCH  /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 DELETE /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 ```
@@ -80,7 +77,7 @@ Il backend usa migration TypeORM versionate e mantiene `synchronize: false`. Il 
 
 Il `POST /documents` acquisisce in `multipart/form-data` il documento finale prodotto da un modulo esterno, salva fisicamente il file in `storage/documents/` e registra i metadati nel database. I metadati descrittivi entrano nel campo `metadata` JSONB; `file_info` resta separato per i dati tecnici del file. Non e' upload manuale libero da UI: e' l'ingresso tecnico del documento gia' generato dal processo applicativo.
 
-`documentKey` non coincide con `metadata.templateId`: il `templateId` identifica il template sorgente, mentre `documentKey` identifica il documento logico generato nel contesto `keyType + key + subKey`. Se arriva lo stesso `documentKey` con lo stesso checksum SHA-256, il backend aggiorna solo i metadati. Se arriva lo stesso `documentKey` con contenuto diverso, crea una nuova versione, aggiorna il documento corrente e non sovrascrive i file precedenti.
+`documentKey` non coincide con `metadata.templateId`: il `templateId` identifica il template sorgente, mentre `documentKey` identifica il documento logico generato nel contesto `keyType + key + subKey`. Se arriva lo stesso `documentKey` con lo stesso checksum SHA-256, il backend aggiorna solo i metadati. Se arriva lo stesso `documentKey` con contenuto diverso, aggiorna il record corrente, incrementa `version`, sostituisce il file corrente e prova a eliminare il file precedente dallo storage.
 
 ## OpenAPI e client
 
@@ -102,7 +99,7 @@ La home documentale usa un caricamento progressivo:
 2. la UI mostra i `subKey` con `documentCount` e `statusSummary`;
 3. quando l'utente espande un `subKey`, il frontend chiama `GET /api/v1/document-keys/{keyType}/{key}/documents?subKey=...`;
 4. per la ricerca documentale il frontend usa `GET /api/v1/document-keys/{keyType}/{key}/documents?tag=...`;
-5. per filtri tecnici come `status`, `ownerId` e `subKey`, il frontend usa lo stesso endpoint con query params dedicati.
+5. per filtri tecnici come `status` e `subKey`, il frontend usa lo stesso endpoint con query params dedicati.
 
 In questo modo la pagina carica subito una struttura leggera e recupera i documenti completi solo quando servono.
 
@@ -126,9 +123,7 @@ La migration iniziale crea le tabelle principali:
 
 - `document_keys`
 - `document_sub_keys`
-- `owners`
 - `documents`
-- `document_versions`
 - `tags`
 - `document_tags`
 
@@ -136,9 +131,9 @@ Il seed popola solo dati demo e documenti collegati a file locali in `storage/do
 
 Gli identificativi pubblici dei documenti restano nel formato `DOC-001`, `DOC-020`, ecc. e sono generati tramite la sequence PostgreSQL `document_id_seq`, sincronizzata dal seed sui documenti demo esistenti.
 
-La tabella `documents` contiene la versione corrente e il checksum SHA-256 corrente. La tabella `document_versions` mantiene lo storico dei file e dei checksum per ogni versione.
+La tabella `documents` contiene sempre la versione corrente, il checksum SHA-256 corrente e il file corrente. Il prototipo non mantiene lo storico fisico delle versioni precedenti.
 
-I dati descrittivi variabili del documento stanno in `documents.metadata` (`JSONB`). I campi core restano colonne strutturate: identificativi, `owner_id`, `status`, `file_info`, `checksum_sha256`, `version` e date tecniche. `file_info` resta un JSONB separato per i metadati tecnici del file. I tag restano in tabelle dedicate perche' sono l'unico criterio di ricerca documentale. `metadata` non viene usato per ricerca testuale libera. La tabella `owners` e `owner_id` restano presenti provvisoriamente finche' non viene confermata una gestione esterna degli owner.
+I dati descrittivi variabili del documento stanno in `documents.metadata` (`JSONB`). I campi core restano colonne strutturate: identificativi, `status`, `file_info`, `checksum_sha256`, `version` e date tecniche. `file_info` resta un JSONB separato per i metadati tecnici del file. I tag restano in tabelle dedicate perche' sono l'unico criterio di ricerca documentale. `metadata` non viene usato per ricerca testuale libera. L'owner non e' gestito localmente dal modulo documentale: se arriva da un servizio esterno, puo' essere salvato come snapshot in `metadata.owner`.
 
 Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Copiare `.env.example` in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
 
@@ -252,8 +247,8 @@ Il progetto valida:
 - struttura dati di base;
 - filtri della home documentale;
 - acquisizione tecnica del documento finale e registrazione dei metadati;
-- versionamento storico basato su `documentKey` e checksum SHA-256;
-- tag e owner;
+- aggiornamento della versione corrente basato su `documentKey` e checksum SHA-256;
+- tag e metadati descrittivi;
 - download file;
 - update e archiviazione logica;
 - client generato da OpenAPI.
@@ -268,4 +263,4 @@ Possibili evoluzioni realistiche, da confermare con tutor e team:
 - riallineare il contratto OpenAPI con il backend reale quando il team lo conferma;
 - collegare il client generato al frontend della home documentale;
 - consolidare smoke test e casi Postman;
-- valutare upload, anteprima, permessi o versioning solo dopo conferma di scope.
+- valutare upload manuale, storico versioni, anteprima o permessi solo dopo conferma di scope.

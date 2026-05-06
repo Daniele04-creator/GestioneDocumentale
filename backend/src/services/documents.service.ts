@@ -11,7 +11,6 @@ import {
 	invalidDocumentPatch,
 	invalidQueryParam,
 	keyNotFound,
-	ownerNotFound,
 	subKeyNotFound,
 } from "../common/errors/document-errors";
 import { PROJECT_ROOT, STORAGE_ROOT } from "../common/utils/paths";
@@ -30,10 +29,11 @@ import {
 	type DocumentRow,
 	DocumentsRepository,
 	type DocumentTreeRow,
+	type InternalFileInfo,
 } from "../repositories/documents.repository";
 
 type StatusSummary = Record<DocumentStatus, number>;
-const QUERY_FIELDS = new Set(["subKey", "ownerId", "tag", "status"]);
+const QUERY_FIELDS = new Set(["subKey", "tag", "status"]);
 type DocumentListItem = Pick<
 	DocumentRow,
 	| "id"
@@ -45,7 +45,6 @@ type DocumentListItem = Pick<
 	| "version"
 	| "checksumSha256"
 	| "updatedAt"
-	| "owner"
 	| "tags"
 >;
 
@@ -90,8 +89,6 @@ const FORBIDDEN_METADATA_FIELDS = new Set([
 	"key",
 	"subKey",
 	"documentKey",
-	"ownerId",
-	"owner_id",
 	"status",
 	"fileInfo",
 	"file_info",
@@ -159,11 +156,6 @@ export class DocumentsService {
 		);
 		if (!subKeyExists) throw subKeyNotFound();
 
-		const ownerExists = await this.documentsRepository.ownerExists(
-			payload.ownerId,
-		);
-		if (!ownerExists) throw ownerNotFound();
-
 		const storedFile = await this.storeUploadedDocumentFile(file);
 
 		let result:
@@ -189,6 +181,9 @@ export class DocumentsService {
 		}
 
 		if (!result?.document) throw documentNotFound();
+		if (result.previousFileInfo) {
+			await this.removeStoredFile(result.previousFileInfo);
+		}
 
 		return result.document;
 	}
@@ -221,63 +216,6 @@ export class DocumentsService {
 			validKey,
 			validDocumentId,
 		);
-
-		if (!fileInfo) throw documentNotFound();
-		if (!fileInfo.storagePath) throw documentFileNotFound();
-
-		const absolutePath = this.resolveStoragePath(fileInfo.storagePath);
-		const fileExists = await this.isExistingFile(absolutePath);
-
-		if (!fileExists) throw documentFileNotFound();
-
-		return {
-			absolutePath,
-			fileName: fileInfo.fileName || path.basename(absolutePath),
-			mimeType: fileInfo.mimeType || "application/octet-stream",
-		};
-	}
-
-	async getDocumentVersions(keyType: string, key: string, documentId: string) {
-		const validKeyType = this.validateKeyType(keyType);
-		const validKey = this.validateKey(key);
-		const validDocumentId = this.validateDocumentId(documentId);
-		await this.ensureKeyExists(validKeyType, validKey);
-
-		const document = await this.documentsRepository.findByKeyAndId(
-			validKeyType,
-			validKey,
-			validDocumentId,
-		);
-		if (!document) throw documentNotFound();
-
-		const versions = await this.documentsRepository.findVersionsByKeyAndId(
-			validKeyType,
-			validKey,
-			validDocumentId,
-		);
-
-		return { data: versions };
-	}
-
-	async getDocumentVersionFile(
-		keyType: string,
-		key: string,
-		documentId: string,
-		version: string,
-	) {
-		const validKeyType = this.validateKeyType(keyType);
-		const validKey = this.validateKey(key);
-		const validDocumentId = this.validateDocumentId(documentId);
-		const validVersion = this.validateVersion(version);
-		await this.ensureKeyExists(validKeyType, validKey);
-
-		const fileInfo =
-			await this.documentsRepository.findVersionFileInfoByKeyAndId(
-				validKeyType,
-				validKey,
-				validDocumentId,
-				validVersion,
-			);
 
 		if (!fileInfo) throw documentNotFound();
 		if (!fileInfo.storagePath) throw documentFileNotFound();
@@ -370,16 +308,6 @@ export class DocumentsService {
 		return documentId;
 	}
 
-	private validateVersion(version: string) {
-		const parsedVersion = Number(version);
-
-		if (!Number.isInteger(parsedVersion) || parsedVersion < 1) {
-			throw invalidQueryParam("Invalid document version.");
-		}
-
-		return parsedVersion;
-	}
-
 	private normalizeQuery(query: Record<string, unknown>) {
 		for (const field of Object.keys(query)) {
 			if (!QUERY_FIELDS.has(field)) throw invalidQueryParam();
@@ -389,7 +317,6 @@ export class DocumentsService {
 
 		return {
 			subKey: this.optionalQueryString(query.subKey, "subKey"),
-			ownerId: this.optionalQueryString(query.ownerId, "ownerId"),
 			tag: this.optionalQueryString(query.tag, "tag"),
 			status,
 		};
@@ -459,14 +386,12 @@ export class DocumentsService {
 	): Omit<CreateDocumentInput, "fileInfo" | "checksumSha256"> {
 		const subKey = body.subKey.trim();
 		const documentKey = body.documentKey.trim();
-		const ownerId = body.ownerId.trim();
 		const status = body.status;
 		const metadata = this.normalizeCreateMetadata(body);
 
 		if (subKey === "") throw invalidDocumentPatch("subKey is required");
 		if (documentKey === "")
 			throw invalidDocumentPatch("documentKey is required");
-		if (ownerId === "") throw invalidDocumentPatch("ownerId is required");
 
 		if (
 			status !== undefined &&
@@ -490,7 +415,6 @@ export class DocumentsService {
 			subKey,
 			documentKey,
 			metadata,
-			ownerId,
 			status,
 			tags,
 			createdAt: new Date().toISOString(),
@@ -667,6 +591,17 @@ export class DocumentsService {
 		};
 	}
 
+	private async removeStoredFile(fileInfo?: InternalFileInfo) {
+		if (!fileInfo?.storagePath) return;
+
+		try {
+			const absolutePath = this.resolveStoragePath(fileInfo.storagePath, true);
+			await fs.unlink(absolutePath).catch(() => undefined);
+		} catch {
+			// Best effort: a cleanup failure must not invalidate a completed DB update.
+		}
+	}
+
 	private async safeStoredFileName(originalName?: string) {
 		const safeOriginalName = this.safeOriginalFileName(originalName);
 
@@ -762,7 +697,6 @@ export class DocumentsService {
 				version: document.version,
 				checksumSha256: document.checksumSha256,
 				updatedAt: document.updatedAt,
-				owner: document.owner,
 				tags: document.tags ?? [],
 			});
 		}

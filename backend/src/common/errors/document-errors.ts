@@ -44,13 +44,6 @@ export function subKeyNotFound() {
 	});
 }
 
-export function ownerNotFound() {
-	return new NotFoundException({
-		code: "OWNER_NOT_FOUND",
-		message: "Document owner not found.",
-	});
-}
-
 export function documentNotFound() {
 	return new NotFoundException({
 		code: "DOCUMENT_NOT_FOUND",

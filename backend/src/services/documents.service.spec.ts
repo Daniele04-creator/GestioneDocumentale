@@ -40,6 +40,11 @@ describe("DocumentsService", () => {
 				description: "Documento prodotto da una funzione esterna",
 				templateId: "TPL-REPORT",
 				templateName: "Template report avanzamento",
+				owner: {
+					id: "USR-001",
+					name: "Francesca R",
+					source: "external-user-service",
+				},
 			},
 			title: "Report avanzamento",
 			description: "Documento prodotto da una funzione esterna",
@@ -51,7 +56,6 @@ describe("DocumentsService", () => {
 				name: "Documentazione requisiti",
 				parentSubKey: null,
 			},
-			owner: { id: "owner-001", name: "Francesca R" },
 			fileInfo: {
 				fileName: "report-avanzamento.txt",
 				mimeType: "text/plain",
@@ -68,7 +72,6 @@ describe("DocumentsService", () => {
 		const repository = {
 			keyExists: jest.fn().mockResolvedValue(true),
 			subKeyExists: jest.fn().mockResolvedValue(true),
-			ownerExists: jest.fn().mockResolvedValue(true),
 			upsertGeneratedDocument: jest.fn().mockResolvedValue({
 				document: createdDocument,
 				storedFileUsed: true,
@@ -103,7 +106,17 @@ describe("DocumentsService", () => {
 				templateName: "Template report avanzamento",
 				title: "Report avanzamento",
 				description: "Documento prodotto da una funzione esterna",
-				ownerId: "owner-001",
+				metadata: {
+					title: "Report avanzamento",
+					description: "Documento prodotto da una funzione esterna",
+					templateId: "TPL-REPORT",
+					templateName: "Template report avanzamento",
+					owner: {
+						id: "USR-001",
+						name: "Francesca R",
+						source: "external-user-service",
+					},
+				},
 				tags: ["Report"],
 			},
 			{
@@ -128,6 +141,11 @@ describe("DocumentsService", () => {
 					description: "Documento prodotto da una funzione esterna",
 					templateId: "TPL-REPORT",
 					templateName: "Template report avanzamento",
+					owner: {
+						id: "USR-001",
+						name: "Francesca R",
+						source: "external-user-service",
+					},
 				},
 				tags: ["Report"],
 			}),
