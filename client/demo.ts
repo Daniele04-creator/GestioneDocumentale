@@ -9,10 +9,10 @@ import {
 } from './index';
 
 const basePath = process.env.API_BASE_URL || 'http://localhost:3000';
-const keyType = 'project';
+const keyType = 'Project';
 const key = 'PRJ-001';
 const documentId = 'DOC-001';
-const subKey = 'PKG-001';
+const subKey = 'WP-001';
 const demoDocumentKey = 'CLIENT-DEMO-REPORT';
 
 const configuration = new Configuration({ basePath });

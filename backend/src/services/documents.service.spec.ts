@@ -7,10 +7,10 @@ describe("DocumentsService", () => {
 			keyExists: jest.fn().mockResolvedValue(true),
 			findDocumentTreeByKey: jest.fn().mockResolvedValue([
 				{
-					key_type: "project",
+					key_type: "Project",
 					key_value: "PRJ-001",
 					key_name: "Management as Code Demo",
-					sub_key: "PKG-001",
+					sub_key: "WP-001",
 					sub_key_name: "Documentazione requisiti",
 					parent_sub_key: null,
 					parent_sub_key_name: null,
@@ -24,11 +24,26 @@ describe("DocumentsService", () => {
 		} as unknown as DocumentsRepository;
 
 		const service = new DocumentsService(repository);
-		const response = await service.getDocumentTree("project", "PRJ-001");
+		const response = await service.getDocumentTree("Project", "PRJ-001");
 
 		expect(response.meta.totalSubKeys).toBe(1);
 		expect(response.meta.totalDocuments).toBe(1);
 		expect(response.data[0]).not.toHaveProperty("documents");
+	});
+
+	it("rejects keyType values outside the MAC ItemType enum", async () => {
+		const repository = {
+			keyExists: jest.fn(),
+		} as unknown as DocumentsRepository;
+
+		const service = new DocumentsService(repository);
+
+		await expect(
+			service.getDocumentTree("project", "PRJ-001"),
+		).rejects.toMatchObject({
+			response: expect.objectContaining({ code: "INVALID_QUERY_PARAM" }),
+		});
+		expect(repository.keyExists).not.toHaveBeenCalled();
 	});
 
 	it("registers metadata for an existing document file", async () => {
@@ -49,10 +64,10 @@ describe("DocumentsService", () => {
 			title: "Report avanzamento",
 			description: "Documento prodotto da una funzione esterna",
 			status: "draft",
-			keyType: "project",
+			keyType: "Project",
 			key: { id: "PRJ-001", name: "Management as Code Demo" },
 			subKey: {
-				id: "PKG-001",
+				id: "WP-001",
 				name: "Documentazione requisiti",
 				parentSubKey: null,
 			},
@@ -97,10 +112,10 @@ describe("DocumentsService", () => {
 			});
 
 		const response = await service.createDocument(
-			"project",
+			"Project",
 			"PRJ-001",
 			{
-				subKey: "PKG-001",
+				subKey: "WP-001",
 				documentKey: "REPORT-AVANZAMENTO-DEMO",
 				templateId: "TPL-REPORT",
 				templateName: "Template report avanzamento",
@@ -129,10 +144,10 @@ describe("DocumentsService", () => {
 
 		expect(response.id).toBe("DOC-020");
 		expect(repository.upsertGeneratedDocument).toHaveBeenCalledWith(
-			"project",
+			"Project",
 			"PRJ-001",
 			expect.objectContaining({
-				subKey: "PKG-001",
+				subKey: "WP-001",
 				documentKey: "REPORT-AVANZAMENTO-DEMO",
 				checksumSha256:
 					"0000000000000000000000000000000000000000000000000000000000000000",

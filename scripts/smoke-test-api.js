@@ -2,9 +2,9 @@ const { access, readFile } = require('node:fs/promises');
 const path = require('node:path');
 
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
-const KEY_TYPE = 'project';
+const KEY_TYPE = 'Project';
 const KEY = 'PRJ-001';
-const SUB_KEY = 'PKG-001';
+const SUB_KEY = 'WP-001';
 const DOCUMENT_ID = 'DOC-001';
 const CREATE_DOCUMENT_KEY = 'SMOKE-REPORT-AVANZAMENTO';
 const UPLOAD_SOURCE_FILE = path.join(
@@ -407,7 +407,7 @@ async function main() {
 
   await runTest('POST documents with missing subKey returns SUB_KEY_NOT_FOUND', async () => {
     const formData = await buildCreateDocumentForm({
-      subKey: 'PKG-NOT-FOUND',
+      subKey: 'WP-NOT-FOUND',
       metadata: {
         ...CREATE_DOCUMENT_BODY.metadata,
         title: 'SubKey missing smoke test',

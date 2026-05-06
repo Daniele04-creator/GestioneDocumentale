@@ -22,9 +22,28 @@ Ogni documento e' associato a:
 - uno o piu' tag;
 - un file locale demo usato per il download.
 
-`keyType` rende il modulo riusabile per piu' contesti, ad esempio portfolio, program o project, senza legare il dominio documentale a una sola entita'.
+`keyType` rende il modulo riusabile per piu' contesti ed e' allineato ai valori `ItemType` del MAC core: `Portfolio`, `Program`, `Project`, `Activity`, `Template`, `Join`.
 
 La generazione automatica o stampa da template non e' implementata direttamente in questo modulo. Eventuali documenti generati da servizi esterni entrano nel documentale tramite acquisizione multipart del file finale e dei metadati.
+
+## Integrazione con MAC core
+
+Il modulo documentale resta autonomo e non copia il dominio MAC core. Il contratto `openapi_mac_v1.0.yaml` viene usato solo come riferimento di mapping:
+
+- `keyType` rappresenta il tipo item MAC, coerente con `ItemType`;
+- `key` rappresenta l'identificativo item MAC, cioe' `itemId`;
+- `subKey` rappresenta `WorkPackage.id` o un nodo equivalente;
+- `parentSubKey`, quando presente, rappresenta `WorkPackage.parentId` come snapshot/demo;
+- owner e resources arrivano da servizi esterni e, se serve conservarli, vengono salvati in `metadata.owner`;
+- Task e SubTask del MAC core non diventano entity del documentale.
+
+Nel prototipo locale `document_keys` e `document_sub_keys` servono per demo e validazione locale. In integrazione reale va deciso con tutor/team se il documentale dovra' mantenere una copia minima del contesto o fidarsi del MAC core/BFF.
+
+La nota tecnica di mapping si trova in:
+
+```text
+docs/integration/mac-core-mapping.md
+```
 
 ## Struttura del progetto
 

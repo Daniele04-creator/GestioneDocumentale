@@ -26,7 +26,7 @@
     },
     "/api/v1/document-keys/{keyType}/{key}/document-tree": {
       "get": {
-        "description": "Restituisce una struttura leggera dei subKey del contenitore documentale, con conteggi e statusSummary, senza caricare i dettagli dei documenti.",
+        "description": "Restituisce una struttura leggera dei subKey, dove subKey rappresenta WorkPackage.id del MAC core, con conteggi e statusSummary.",
         "operationId": "DocumentKeysController_getDocumentTree",
         "parameters": [
           {
@@ -35,9 +35,18 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "example": "project"
+              "example": "Project",
+              "enum": [
+                "Portfolio",
+                "Program",
+                "Project",
+                "Activity",
+                "Template",
+                "Join"
+              ],
+              "description": "Tipo item MAC core compatibile con ItemType."
             },
-            "description": "Tipo del contenitore documentale"
+            "description": "Tipo item MAC core. Valori compatibili con ItemType: Portfolio, Program, Project, Activity, Template, Join."
           },
           {
             "name": "key",
@@ -47,7 +56,7 @@
               "type": "string",
               "example": "PRJ-001"
             },
-            "description": "Identificativo del contenitore documentale"
+            "description": "Identificativo dell item MAC core, equivalente a itemId."
           }
         ],
         "responses": {
@@ -89,7 +98,7 @@
     },
     "/api/v1/document-keys/{keyType}/{key}/documents": {
       "get": {
-        "description": "Restituisce i documenti del contenitore documentale, raggruppati per subKey. La ricerca documentale avviene tramite tag; restano disponibili filtri tecnici per subKey e status.",
+        "description": "Restituisce i documenti del contenitore documentale, raggruppati per subKey. keyType/key mappano ItemType/itemId MAC core; subKey mappa WorkPackage.id. La ricerca documentale avviene tramite tag.",
         "operationId": "DocumentKeysController_listDocuments",
         "parameters": [
           {
@@ -122,9 +131,10 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": "PKG-001"
+              "example": "WP-001",
+              "type": "string"
             },
-            "description": "Filtra i documenti di uno specifico subKey."
+            "description": "Filtra per WorkPackage.id del contesto MAC core."
           },
           {
             "name": "keyType",
@@ -132,9 +142,18 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "example": "project"
+              "example": "Project",
+              "enum": [
+                "Portfolio",
+                "Program",
+                "Project",
+                "Activity",
+                "Template",
+                "Join"
+              ],
+              "description": "Tipo item MAC core compatibile con ItemType."
             },
-            "description": "Tipo del contenitore documentale"
+            "description": "Tipo item MAC core. Valori compatibili con ItemType: Portfolio, Program, Project, Activity, Template, Join."
           },
           {
             "name": "key",
@@ -144,7 +163,7 @@
               "type": "string",
               "example": "PRJ-001"
             },
-            "description": "Identificativo del contenitore documentale"
+            "description": "Identificativo dell item MAC core, equivalente a itemId."
           }
         ],
         "responses": {
@@ -203,7 +222,7 @@
         ]
       },
       "post": {
-        "description": "Acquisisce un documento finale prodotto da un modulo esterno. Se documentKey non esiste nel contesto keyType/key/subKey crea un nuovo documento versione 1; se esiste e il checksum SHA-256 e uguale aggiorna solo i metadati; se esiste e il checksum cambia aggiorna il documento corrente, incrementa version e sostituisce il file corrente senza mantenere storico fisico.",
+        "description": "Acquisisce un documento finale prodotto da un modulo esterno e lo collega al contesto MAC keyType/key/subKey. keyType e key corrispondono a ItemType e itemId; subKey corrisponde a WorkPackage.id.",
         "operationId": "DocumentKeysController_createDocument",
         "parameters": [
           {
@@ -212,9 +231,18 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "example": "project"
+              "example": "Project",
+              "enum": [
+                "Portfolio",
+                "Program",
+                "Project",
+                "Activity",
+                "Template",
+                "Join"
+              ],
+              "description": "Tipo item MAC core compatibile con ItemType."
             },
-            "description": "Tipo del contenitore documentale"
+            "description": "Tipo item MAC core. Valori compatibili con ItemType: Portfolio, Program, Project, Activity, Template, Join."
           },
           {
             "name": "key",
@@ -224,7 +252,7 @@
               "type": "string",
               "example": "PRJ-001"
             },
-            "description": "Identificativo del contenitore documentale"
+            "description": "Identificativo dell item MAC core, equivalente a itemId."
           }
         ],
         "requestBody": {
@@ -239,7 +267,7 @@
                   "summary": "Acquire generated document",
                   "value": {
                     "file": "<binary file>",
-                    "subKey": "PKG-001",
+                    "subKey": "WP-001",
                     "documentKey": "TPL-REPORT-MENSILE-2026-01",
                     "metadata": "{\"title\":\"Report avanzamento\",\"description\":\"Documento prodotto da una funzione esterna\",\"templateId\":\"TPL-REPORT-MENSILE\",\"templateName\":\"Template report mensile\",\"owner\":{\"id\":\"USR-123\",\"name\":\"Mario Rossi\",\"source\":\"external-user-service\"}}",
                     "status": "draft",
@@ -334,9 +362,18 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "example": "project"
+              "example": "Project",
+              "enum": [
+                "Portfolio",
+                "Program",
+                "Project",
+                "Activity",
+                "Template",
+                "Join"
+              ],
+              "description": "Tipo item MAC core compatibile con ItemType."
             },
-            "description": "Tipo del contenitore documentale"
+            "description": "Tipo item MAC core. Valori compatibili con ItemType: Portfolio, Program, Project, Activity, Template, Join."
           },
           {
             "name": "key",
@@ -346,7 +383,7 @@
               "type": "string",
               "example": "PRJ-001"
             },
-            "description": "Identificativo del contenitore documentale"
+            "description": "Identificativo dell item MAC core, equivalente a itemId."
           },
           {
             "name": "documentId",
@@ -447,9 +484,18 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "example": "project"
+              "example": "Project",
+              "enum": [
+                "Portfolio",
+                "Program",
+                "Project",
+                "Activity",
+                "Template",
+                "Join"
+              ],
+              "description": "Tipo item MAC core compatibile con ItemType."
             },
-            "description": "Tipo del contenitore documentale"
+            "description": "Tipo item MAC core. Valori compatibili con ItemType: Portfolio, Program, Project, Activity, Template, Join."
           },
           {
             "name": "key",
@@ -459,7 +505,7 @@
               "type": "string",
               "example": "PRJ-001"
             },
-            "description": "Identificativo del contenitore documentale"
+            "description": "Identificativo dell item MAC core, equivalente a itemId."
           },
           {
             "name": "documentId",
@@ -545,9 +591,18 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "example": "project"
+              "example": "Project",
+              "enum": [
+                "Portfolio",
+                "Program",
+                "Project",
+                "Activity",
+                "Template",
+                "Join"
+              ],
+              "description": "Tipo item MAC core compatibile con ItemType."
             },
-            "description": "Tipo del contenitore documentale"
+            "description": "Tipo item MAC core. Valori compatibili con ItemType: Portfolio, Program, Project, Activity, Template, Join."
           },
           {
             "name": "key",
@@ -557,7 +612,7 @@
               "type": "string",
               "example": "PRJ-001"
             },
-            "description": "Identificativo del contenitore documentale"
+            "description": "Identificativo dell item MAC core, equivalente a itemId."
           },
           {
             "name": "documentId",
@@ -679,9 +734,18 @@
             "in": "path",
             "schema": {
               "type": "string",
-              "example": "project"
+              "example": "Project",
+              "enum": [
+                "Portfolio",
+                "Program",
+                "Project",
+                "Activity",
+                "Template",
+                "Join"
+              ],
+              "description": "Tipo item MAC core compatibile con ItemType."
             },
-            "description": "Tipo del contenitore documentale"
+            "description": "Tipo item MAC core. Valori compatibili con ItemType: Portfolio, Program, Project, Activity, Template, Join."
           },
           {
             "name": "key",
@@ -691,7 +755,7 @@
               "type": "string",
               "example": "PRJ-001"
             },
-            "description": "Identificativo del contenitore documentale"
+            "description": "Identificativo dell item MAC core, equivalente a itemId."
           },
           {
             "name": "documentId",
@@ -880,13 +944,16 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "PRJ-001"
+            "example": "PRJ-001",
+            "description": "Identificativo item MAC core, equivalente a itemId."
           },
           "name": {
             "type": "string",
-            "example": "Management as Code Demo"
+            "example": "Management as Code Demo",
+            "description": "Nome snapshot dell item MAC core usato nel prototipo locale."
           }
-        }
+        },
+        "description": "Riferimento all item MAC core collegato al documento."
       },
       "ParentSubKeyRef": {
         "type": "object",
@@ -898,14 +965,17 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "PKG-001"
+            "example": "WP-001",
+            "description": "Identificativo del WorkPackage padre."
           },
           "name": {
             "type": "string",
-            "example": "Documentazione requisiti"
+            "example": "Documentazione requisiti",
+            "description": "Nome snapshot del WorkPackage padre nel prototipo locale."
           }
         },
-        "example": null
+        "example": null,
+        "description": "Riferimento opzionale al WorkPackage.parentId del MAC core."
       },
       "SubKeyRef": {
         "type": "object",
@@ -917,16 +987,20 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "PKG-001"
+            "example": "WP-001",
+            "description": "Identificativo WorkPackage MAC core."
           },
           "name": {
             "type": "string",
-            "example": "Documentazione requisiti"
+            "example": "Documentazione requisiti",
+            "description": "Nome snapshot del WorkPackage nel prototipo locale."
           },
           "parentSubKey": {
-            "$ref": "#/components/schemas/ParentSubKeyRef"
+            "$ref": "#/components/schemas/ParentSubKeyRef",
+            "description": "WorkPackage.parentId se disponibile come snapshot locale."
           }
-        }
+        },
+        "description": "Riferimento al WorkPackage.id del MAC core usato come subKey documentale."
       },
       "FileInfo": {
         "type": "object",
@@ -1094,7 +1168,16 @@
           },
           "keyType": {
             "type": "string",
-            "example": "project"
+            "example": "Project",
+            "enum": [
+              "Portfolio",
+              "Program",
+              "Project",
+              "Activity",
+              "Template",
+              "Join"
+            ],
+            "description": "Tipo item MAC core compatibile con ItemType."
           },
           "key": {
             "$ref": "#/components/schemas/KeyRef"
@@ -1145,7 +1228,16 @@
         "properties": {
           "keyType": {
             "type": "string",
-            "example": "project"
+            "example": "Project",
+            "enum": [
+              "Portfolio",
+              "Program",
+              "Project",
+              "Activity",
+              "Template",
+              "Join"
+            ],
+            "description": "Tipo item MAC core compatibile con ItemType."
           },
           "key": {
             "$ref": "#/components/schemas/KeyRef"
@@ -1218,7 +1310,16 @@
         "properties": {
           "keyType": {
             "type": "string",
-            "example": "project"
+            "example": "Project",
+            "enum": [
+              "Portfolio",
+              "Program",
+              "Project",
+              "Activity",
+              "Template",
+              "Join"
+            ],
+            "description": "Tipo item MAC core compatibile con ItemType."
           },
           "key": {
             "$ref": "#/components/schemas/KeyRef"
@@ -1369,7 +1470,8 @@
           },
           "subKey": {
             "type": "string",
-            "example": "PKG-001"
+            "example": "WP-001",
+            "description": "WorkPackage.id del MAC core a cui collegare il documento."
           },
           "documentKey": {
             "type": "string",
@@ -1472,7 +1574,7 @@
                 "example": "external-user-service"
               }
             },
-            "description": "Snapshot opzionale dell owner proveniente da un servizio esterno. Il modulo documentale non gestisce owner locali."
+            "description": "Snapshot opzionale di una Resource/owner proveniente da servizi MAC core o esterni. Il modulo documentale non valida ne gestisce owner locali."
           },
           "source": {
             "type": "object",

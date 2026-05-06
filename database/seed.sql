@@ -1,20 +1,20 @@
 INSERT INTO document_keys (key_type, key_value, name)
 VALUES
-  ('project', 'PRJ-001', 'Management as Code Demo'),
-  ('program', 'PROG-001', 'Frontend Migration'),
-  ('project', 'PRJ-002', 'Document Module Validation')
+  ('Project', 'PRJ-001', 'Management as Code Demo'),
+  ('Program', 'PROG-001', 'Frontend Migration'),
+  ('Project', 'PRJ-002', 'Document Module Validation')
 ON CONFLICT (key_type, key_value) DO UPDATE
 SET name = EXCLUDED.name;
 
 INSERT INTO document_sub_keys (key_type, key_value, sub_key, parent_sub_key, name)
 VALUES
-  ('project', 'PRJ-001', 'PKG-001', NULL, 'Documentazione requisiti'),
-  ('project', 'PRJ-001', 'PKG-002', NULL, 'Documentazione architettura'),
-  ('project', 'PRJ-001', 'PKG-007', 'PKG-001', 'Specifiche funzionali'),
-  ('program', 'PROG-001', 'PKG-003', NULL, 'UI Mockup'),
-  ('program', 'PROG-001', 'PKG-004', NULL, 'React Migration'),
-  ('project', 'PRJ-002', 'PKG-005', NULL, 'API Validation'),
-  ('project', 'PRJ-002', 'PKG-006', NULL, 'Test Documentation')
+  ('Project', 'PRJ-001', 'WP-001', NULL, 'Documentazione requisiti'),
+  ('Project', 'PRJ-001', 'WP-002', NULL, 'Documentazione architettura'),
+  ('Project', 'PRJ-001', 'WP-007', 'WP-001', 'Specifiche funzionali'),
+  ('Program', 'PROG-001', 'WP-003', NULL, 'UI Mockup'),
+  ('Program', 'PROG-001', 'WP-004', NULL, 'React Migration'),
+  ('Project', 'PRJ-002', 'WP-005', NULL, 'API Validation'),
+  ('Project', 'PRJ-002', 'WP-006', NULL, 'Test Documentation')
 ON CONFLICT (key_type, key_value, sub_key) DO UPDATE
 SET
   parent_sub_key = EXCLUDED.parent_sub_key,
@@ -57,9 +57,9 @@ INSERT INTO documents (
 VALUES
 (
   'DOC-001',
-  'project',
+  'Project',
   'PRJ-001',
-  'PKG-001',
+  'WP-001',
   'SRS-SPECIFICATION',
   '{"title":"Specifica SRS","description":"Documento dei requisiti software per il prototipo documentale","templateId":"TPL-SRS","templateName":"SRS specification template","owner":{"id":"owner-001","name":"Francesca R","source":"seed-demo"}}'::jsonb,
   'draft',
@@ -72,9 +72,9 @@ VALUES
 ),
 (
   'DOC-002',
-  'project',
+  'Project',
   'PRJ-001',
-  'PKG-001',
+  'WP-001',
   'ARCHITECTURE-OVERVIEW',
   '{"title":"SRS architecture overview","description":"Architecture overview used while preparing the SRS subKey","templateId":"TPL-ARCHITECTURE","templateName":"Architecture overview template","owner":{"id":"owner-001","name":"Francesca R","source":"seed-demo"}}'::jsonb,
   'approved',
@@ -87,9 +87,9 @@ VALUES
 ),
 (
   'DOC-003',
-  'project',
+  'Project',
   'PRJ-001',
-  'PKG-001',
+  'WP-001',
   'RISK-REGISTER',
   '{"title":"Risk register","description":"Risk register for the Management as Code demo","templateId":"TPL-RISK-REGISTER","templateName":"Risk register template","owner":{"id":"owner-002","name":"Paolo V","source":"seed-demo"}}'::jsonb,
   'in_review',
@@ -102,9 +102,9 @@ VALUES
 ),
 (
   'DOC-004',
-  'project',
+  'Project',
   'PRJ-001',
-  'PKG-001',
+  'WP-001',
   'INTEGRATION-CHECKLIST',
   '{"title":"Integration checklist","description":"Archived checklist for early integration checks","templateId":"TPL-CHECKLIST","templateName":"Integration checklist template","owner":{"id":"owner-003","name":"Andrea B","source":"seed-demo"}}'::jsonb,
   'archived',
@@ -117,9 +117,9 @@ VALUES
 ),
 (
   'DOC-005',
-  'project',
+  'Project',
   'PRJ-001',
-  'PKG-002',
+  'WP-002',
   'WBS-STRUCTURE-NOTES',
   '{"title":"WBS structure notes","description":"Notes about subKey level work breakdown","templateId":"TPL-WBS-NOTES","templateName":"WBS notes template","owner":{"id":"owner-002","name":"Paolo V","source":"seed-demo"}}'::jsonb,
   'in_review',
@@ -132,9 +132,9 @@ VALUES
 ),
 (
   'DOC-006',
-  'project',
+  'Project',
   'PRJ-001',
-  'PKG-002',
+  'WP-002',
   'DOCUMENT-API-CONTRACT',
   '{"title":"Document API contract","description":"API contract for subKey based document browsing","templateId":"TPL-API-CONTRACT","templateName":"API contract template","owner":{"id":"owner-004","name":"Daniele","source":"seed-demo"}}'::jsonb,
   'approved',
@@ -147,9 +147,9 @@ VALUES
 ),
 (
   'DOC-007',
-  'project',
+  'Project',
   'PRJ-001',
-  'PKG-007',
+  'WP-007',
   'FUNCTIONAL-REQUIREMENTS-DRAFT',
   '{"title":"Functional requirements draft","description":"Draft document with functional requirements and architecture notes","templateId":"TPL-REQUIREMENTS-DRAFT","templateName":"Requirements draft template","owner":{"id":"owner-001","name":"Francesca R","source":"seed-demo"}}'::jsonb,
   'draft',
@@ -162,9 +162,9 @@ VALUES
 ),
 (
   'DOC-008',
-  'program',
+  'Program',
   'PROG-001',
-  'PKG-003',
+  'WP-003',
   'KICKOFF-MINUTES',
   '{"title":"Kickoff meeting minutes","description":"Minutes from the frontend migration kickoff meeting","templateId":"TPL-MEETING-MINUTES","templateName":"Meeting minutes template","owner":{"id":"owner-003","name":"Andrea B","source":"seed-demo"}}'::jsonb,
   'approved',
@@ -177,9 +177,9 @@ VALUES
 ),
 (
   'DOC-009',
-  'program',
+  'Program',
   'PROG-001',
-  'PKG-003',
+  'WP-003',
   'DOCUMENT-HOME-NOTES',
   '{"title":"Document home mockup notes","description":"Notes for the first document home mockup and subKey navigation","templateId":"TPL-MOCKUP-NOTES","templateName":"Mockup notes template","owner":{"id":"owner-004","name":"Daniele","source":"seed-demo"}}'::jsonb,
   'draft',
@@ -192,9 +192,9 @@ VALUES
 ),
 (
   'DOC-010',
-  'program',
+  'Program',
   'PROG-001',
-  'PKG-003',
+  'WP-003',
   'UI-INTEGRATION-CHECKLIST',
   '{"title":"UI integration checklist","description":"Checklist for connecting the UI mockup to the backend","templateId":"TPL-UI-CHECKLIST","templateName":"UI checklist template","owner":{"id":"owner-005","name":"Document Team","source":"seed-demo"}}'::jsonb,
   'in_review',
@@ -207,9 +207,9 @@ VALUES
 ),
 (
   'DOC-011',
-  'program',
+  'Program',
   'PROG-001',
-  'PKG-004',
+  'WP-004',
   'API-CONSUMPTION-NOTES',
   '{"title":"API consumption notes","description":"Notes for consuming the grouped document API from a frontend client","templateId":"TPL-API-NOTES","templateName":"API notes template","owner":{"id":"owner-002","name":"Paolo V","source":"seed-demo"}}'::jsonb,
   'approved',
@@ -222,9 +222,9 @@ VALUES
 ),
 (
   'DOC-012',
-  'program',
+  'Program',
   'PROG-001',
-  'PKG-004',
+  'WP-004',
   'REACT-PAGE-MAPPING',
   '{"title":"React page mapping","description":"Draft mapping between possible React pages and backend calls","templateId":"TPL-FRONTEND-MAPPING","templateName":"Frontend mapping template","owner":{"id":"owner-004","name":"Daniele","source":"seed-demo"}}'::jsonb,
   'draft',
@@ -237,9 +237,9 @@ VALUES
 ),
 (
   'DOC-013',
-  'program',
+  'Program',
   'PROG-001',
-  'PKG-004',
+  'WP-004',
   'STATE-MANAGEMENT-NOTES',
   '{"title":"State management notes","description":"Notes about frontend state for filters and selected subKeys","templateId":"TPL-STATE-NOTES","templateName":"State notes template","owner":{"id":"owner-003","name":"Andrea B","source":"seed-demo"}}'::jsonb,
   'in_review',
@@ -252,9 +252,9 @@ VALUES
 ),
 (
   'DOC-014',
-  'program',
+  'Program',
   'PROG-001',
-  'PKG-004',
+  'WP-004',
   'FRONTEND-VALIDATION-REPORT',
   '{"title":"Frontend validation report","description":"Archived validation report for the frontend migration demo","templateId":"TPL-VALIDATION-REPORT","templateName":"Validation report template","owner":{"id":"owner-005","name":"Document Team","source":"seed-demo"}}'::jsonb,
   'archived',
@@ -267,9 +267,9 @@ VALUES
 ),
 (
   'DOC-015',
-  'project',
+  'Project',
   'PRJ-002',
-  'PKG-005',
+  'WP-005',
   'DOCUMENT-VALIDATION-PLAN',
   '{"title":"Document validation plan","description":"Plan for validating filters, grouping, summaries, and file downloads","templateId":"TPL-VALIDATION-PLAN","templateName":"Validation plan template","owner":{"id":"owner-001","name":"Francesca R","source":"seed-demo"}}'::jsonb,
   'draft',
@@ -282,9 +282,9 @@ VALUES
 ),
 (
   'DOC-016',
-  'project',
+  'Project',
   'PRJ-002',
-  'PKG-006',
+  'WP-006',
   'DOWNLOAD-TEST-MATRIX',
   '{"title":"Download test matrix","description":"Matrix for checking file downloads across document keys and subKeys","templateId":"TPL-TEST-MATRIX","templateName":"Test matrix template","owner":{"id":"owner-002","name":"Paolo V","source":"seed-demo"}}'::jsonb,
   'in_review',
@@ -297,9 +297,9 @@ VALUES
 ),
 (
   'DOC-017',
-  'project',
+  'Project',
   'PRJ-002',
-  'PKG-006',
+  'WP-006',
   'POSTMAN-TEST-CHECKLIST',
   '{"title":"Postman test checklist","description":"Checklist for validating Postman requests against the document API","templateId":"TPL-POSTMAN-CHECKLIST","templateName":"Postman checklist template","owner":{"id":"owner-004","name":"Daniele","source":"seed-demo"}}'::jsonb,
   'approved',
@@ -312,9 +312,9 @@ VALUES
 ),
 (
   'DOC-018',
-  'project',
+  'Project',
   'PRJ-002',
-  'PKG-006',
+  'WP-006',
   'TAG-REVIEW',
   '{"title":"Tag review","description":"Review of document tags used for classification and search","templateId":"TPL-TAG-REVIEW","templateName":"Tag review template","owner":{"id":"owner-005","name":"Document Team","source":"seed-demo"}}'::jsonb,
   'approved',
@@ -327,9 +327,9 @@ VALUES
 ),
 (
   'DOC-019',
-  'project',
+  'Project',
   'PRJ-002',
-  'PKG-006',
+  'WP-006',
   'FINAL-VALIDATION-SUMMARY',
   '{"title":"Final validation summary","description":"Archived summary of document module validation results","templateId":"TPL-FINAL-SUMMARY","templateName":"Final summary template","owner":{"id":"owner-005","name":"Document Team","source":"seed-demo"}}'::jsonb,
   'archived',

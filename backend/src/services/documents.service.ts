@@ -34,6 +34,14 @@ import {
 
 type StatusSummary = Record<DocumentStatus, number>;
 const QUERY_FIELDS = new Set(["subKey", "tag", "status"]);
+const MAC_ITEM_TYPES = new Set([
+	"Portfolio",
+	"Program",
+	"Project",
+	"Activity",
+	"Template",
+	"Join",
+]);
 type DocumentListItem = Pick<
 	DocumentRow,
 	| "id"
@@ -289,7 +297,12 @@ export class DocumentsService {
 			throw invalidQueryParam("Invalid key type.");
 		}
 
-		return keyType.trim();
+		const trimmedKeyType = keyType.trim();
+		if (!MAC_ITEM_TYPES.has(trimmedKeyType)) {
+			throw invalidQueryParam("Invalid key type.");
+		}
+
+		return trimmedKeyType;
 	}
 
 	private validateKey(key: string) {
