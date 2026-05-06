@@ -22,8 +22,19 @@ export type InternalFileInfo = PublicFileInfo & {
 	storagePath: string;
 };
 
+export type DocumentVersionRow = {
+	documentId: string;
+	version: number;
+	fileInfo: PublicFileInfo;
+	checksumSha256: string;
+	createdAt: string;
+};
+
 export type DocumentRow = {
 	id: string;
+	documentKey: string;
+	templateId: string | null;
+	templateName: string | null;
 	title: string;
 	description?: string;
 	status: DocumentStatus;
@@ -36,6 +47,7 @@ export type DocumentRow = {
 	};
 	owner: { id: string; name: string };
 	fileInfo?: PublicFileInfo;
+	checksumSha256: string;
 	version: number;
 	createdAt: string;
 	updatedAt: string | null;
@@ -68,12 +80,52 @@ export type UpdateDocumentChanges = {
 
 export type CreateDocumentInput = {
 	subKey: string;
+	documentKey: string;
+	templateId?: string;
+	templateName?: string;
 	title: string;
 	description?: string;
 	ownerId: string;
-	status: Exclude<DocumentStatus, "archived">;
+	status?: Exclude<DocumentStatus, "archived">;
 	fileInfo: InternalFileInfo;
-	tags: string[];
+	checksumSha256: string;
+	tags?: string[];
+	createdAt: string;
+};
+
+export type UpsertGeneratedDocumentResult = {
+	document?: DocumentRow;
+	storedFileUsed: boolean;
+};
+
+type ExistingLogicalDocumentRow = {
+	id: string;
+	version: number;
+	status: DocumentStatus;
+	checksum_sha256: string;
+};
+
+type UpdateGeneratedDocumentFields = {
+	title: string;
+	description?: string;
+	ownerId: string;
+	status?: Exclude<DocumentStatus, "archived">;
+	templateId?: string;
+	templateName?: string;
+	updatedAt: string;
+};
+
+type UpdateGeneratedDocumentVersionFields = UpdateGeneratedDocumentFields & {
+	version: number;
+	fileInfo: InternalFileInfo;
+	checksumSha256: string;
+};
+
+type InsertDocumentVersionInput = {
+	documentId: string;
+	version: number;
+	fileInfo: InternalFileInfo;
+	checksumSha256: string;
 	createdAt: string;
 };
 
@@ -133,6 +185,32 @@ export class DocumentsRepository {
 		return documents[0];
 	}
 
+	async findByLogicalKey(
+		keyType: string,
+		key: string,
+		subKey: string,
+		documentKey: string,
+	): Promise<DocumentRow | undefined> {
+		const rows = await this.dataSource.query(
+			`
+				SELECT ${this.documentSelectColumnsSql()}
+				${this.documentFromSql()}
+				WHERE d.key_type = $1
+					AND d.key_value = $2
+					AND d.sub_key = $3
+					AND d.document_key = $4
+			`,
+			[keyType, key, subKey, documentKey],
+		);
+
+		if (!rows[0]) return undefined;
+
+		const documents = await this.addTagsToDocuments([
+			this.mapDocumentRow(rows[0]),
+		]);
+		return documents[0];
+	}
+
 	async findFileInfoByKeyAndId(
 		keyType: string,
 		key: string,
@@ -147,6 +225,56 @@ export class DocumentsRepository {
 					AND d.id = $3
 			`,
 			[keyType, key, documentId],
+		);
+
+		return rows[0]?.file_info;
+	}
+
+	async findVersionsByKeyAndId(
+		keyType: string,
+		key: string,
+		documentId: string,
+	): Promise<DocumentVersionRow[]> {
+		const rows = await this.dataSource.query(
+			`
+				SELECT
+					dv.document_id,
+					dv.version,
+					dv.file_info,
+					dv.checksum_sha256,
+					dv.created_at
+				FROM document_versions dv
+				JOIN documents d ON d.id = dv.document_id
+				WHERE d.key_type = $1
+					AND d.key_value = $2
+					AND d.id = $3
+				ORDER BY dv.version
+			`,
+			[keyType, key, documentId],
+		);
+
+		return rows.map((row: Record<string, unknown>) =>
+			this.mapDocumentVersionRow(row),
+		);
+	}
+
+	async findVersionFileInfoByKeyAndId(
+		keyType: string,
+		key: string,
+		documentId: string,
+		version: number,
+	): Promise<InternalFileInfo | undefined> {
+		const rows = await this.dataSource.query(
+			`
+				SELECT dv.file_info
+				FROM document_versions dv
+				JOIN documents d ON d.id = dv.document_id
+				WHERE d.key_type = $1
+					AND d.key_value = $2
+					AND d.id = $3
+					AND dv.version = $4
+			`,
+			[keyType, key, documentId, version],
 		);
 
 		return rows[0]?.file_info;
@@ -237,13 +365,88 @@ export class DocumentsRepository {
 		return rows.length > 0;
 	}
 
-	async createForKey(
+	async upsertGeneratedDocument(
 		keyType: string,
 		key: string,
 		input: CreateDocumentInput,
-	): Promise<DocumentRow | undefined> {
-		const documentId = await this.dataSource.transaction(async (manager) => {
+	): Promise<UpsertGeneratedDocumentResult> {
+		const result = await this.dataSource.transaction(async (manager) => {
+			await this.lockLogicalDocumentKey(manager, keyType, key, input);
+
+			const existingDocument = await this.findExistingLogicalDocumentForUpdate(
+				manager,
+				keyType,
+				key,
+				input,
+			);
+
+			if (existingDocument) {
+				const updatedAt = new Date().toISOString();
+
+				if (existingDocument.checksum_sha256 === input.checksumSha256) {
+					await this.updateGeneratedDocumentMetadata(
+						manager,
+						existingDocument.id,
+						{
+							title: input.title,
+							description: input.description,
+							ownerId: input.ownerId,
+							status: input.status,
+							templateId: input.templateId,
+							templateName: input.templateName,
+							updatedAt,
+						},
+					);
+					await this.syncDocumentTagsIfNeeded(
+						manager,
+						existingDocument.id,
+						input.tags,
+					);
+
+					return {
+						documentId: existingDocument.id,
+						storedFileUsed: false,
+					};
+				}
+
+				const nextVersion = Number(existingDocument.version) + 1;
+				await this.updateGeneratedDocumentVersion(
+					manager,
+					existingDocument.id,
+					{
+						title: input.title,
+						description: input.description,
+						ownerId: input.ownerId,
+						status: input.status,
+						templateId: input.templateId,
+						templateName: input.templateName,
+						version: nextVersion,
+						fileInfo: input.fileInfo,
+						checksumSha256: input.checksumSha256,
+						updatedAt,
+					},
+				);
+				await this.insertDocumentVersion(manager, {
+					documentId: existingDocument.id,
+					version: nextVersion,
+					fileInfo: input.fileInfo,
+					checksumSha256: input.checksumSha256,
+					createdAt: updatedAt,
+				});
+				await this.syncDocumentTagsIfNeeded(
+					manager,
+					existingDocument.id,
+					input.tags,
+				);
+
+				return {
+					documentId: existingDocument.id,
+					storedFileUsed: true,
+				};
+			}
+
 			const nextDocumentId = await this.nextDocumentId(manager);
+			const createdAt = input.createdAt;
 
 			await manager.query(
 				`
@@ -252,63 +455,77 @@ export class DocumentsRepository {
 						key_type,
 						key_value,
 						sub_key,
+						document_key,
+						template_id,
+						template_name,
 						owner_id,
 						title,
 						description,
 						status,
 						file_info,
+						checksum_sha256,
 						version,
 						created_at,
 						updated_at,
 						archived_at
 					)
-					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, 1, $10, NULL, NULL)
+					VALUES (
+						$1,
+						$2,
+						$3,
+						$4,
+						$5,
+						$6,
+						$7,
+						$8,
+						$9,
+						$10,
+						$11,
+						$12::jsonb,
+						$13,
+						1,
+						$14,
+						NULL,
+						NULL
+					)
 				`,
 				[
 					nextDocumentId,
 					keyType,
 					key,
 					input.subKey,
+					input.documentKey,
+					input.templateId ?? null,
+					input.templateName ?? null,
 					input.ownerId,
 					input.title,
 					input.description ?? null,
-					input.status,
+					input.status ?? "draft",
 					JSON.stringify(input.fileInfo),
-					input.createdAt,
+					input.checksumSha256,
+					createdAt,
 				],
 			);
 
-			for (const tag of input.tags) {
-				await manager.query(
-					`
-						INSERT INTO tags (name)
-						SELECT $1::varchar
-						WHERE NOT EXISTS (
-							SELECT 1 FROM tags WHERE lower(name) = lower($1::varchar)
-						)
-					`,
-					[tag],
-				);
-				const tagRows = await manager.query(
-					"SELECT name FROM tags WHERE lower(name) = lower($1::varchar) LIMIT 1",
-					[tag],
-				);
-				const tagName = String(tagRows[0]?.name ?? tag);
+			await this.insertDocumentVersion(manager, {
+				documentId: nextDocumentId,
+				version: 1,
+				fileInfo: input.fileInfo,
+				checksumSha256: input.checksumSha256,
+				createdAt,
+			});
+			await this.syncDocumentTags(manager, nextDocumentId, input.tags ?? []);
 
-				await manager.query(
-					`
-						INSERT INTO document_tags (document_id, tag_name)
-						VALUES ($1, $2)
-						ON CONFLICT DO NOTHING
-					`,
-					[nextDocumentId, tagName],
-				);
-			}
-
-			return nextDocumentId;
+			return {
+				documentId: nextDocumentId,
+				storedFileUsed: true,
+			};
 		});
 
-		return this.findByKeyAndId(keyType, key, documentId);
+		return {
+			document: await this.findByKeyAndId(keyType, key, result.documentId),
+			storedFileUsed: result.storedFileUsed,
+		};
 	}
 
 	async updateForKey(
@@ -352,6 +569,229 @@ export class DocumentsRepository {
 		);
 
 		return rows[0] ? this.findByKeyAndId(keyType, key, documentId) : undefined;
+	}
+
+	private async lockLogicalDocumentKey(
+		manager: EntityManager,
+		keyType: string,
+		key: string,
+		input: CreateDocumentInput,
+	) {
+		await manager.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+			`${keyType}:${key}:${input.subKey}:${input.documentKey}`,
+		]);
+	}
+
+	private async findExistingLogicalDocumentForUpdate(
+		manager: EntityManager,
+		keyType: string,
+		key: string,
+		input: CreateDocumentInput,
+	): Promise<ExistingLogicalDocumentRow | undefined> {
+		const rows = await manager.query(
+			`
+				SELECT id, version, status, checksum_sha256
+				FROM documents
+				WHERE key_type = $1
+					AND key_value = $2
+					AND sub_key = $3
+					AND document_key = $4
+				FOR UPDATE
+			`,
+			[keyType, key, input.subKey, input.documentKey],
+		);
+
+		return rows[0];
+	}
+
+	private async updateGeneratedDocumentMetadata(
+		manager: EntityManager,
+		documentId: string,
+		input: UpdateGeneratedDocumentFields,
+	) {
+		const setClauses = ["title = $1", "owner_id = $2", "updated_at = $3"];
+		const values: unknown[] = [input.title, input.ownerId, input.updatedAt];
+
+		this.addOptionalGeneratedField(
+			setClauses,
+			values,
+			"description",
+			input.description,
+		);
+		this.addOptionalGeneratedField(
+			setClauses,
+			values,
+			"template_id",
+			input.templateId,
+		);
+		this.addOptionalGeneratedField(
+			setClauses,
+			values,
+			"template_name",
+			input.templateName,
+		);
+
+		if (input.status !== undefined) {
+			values.push(input.status);
+			setClauses.push(`status = $${values.length}`);
+			setClauses.push("archived_at = NULL");
+		}
+
+		values.push(documentId);
+		await manager.query(
+			`
+				UPDATE documents
+				SET ${setClauses.join(", ")}
+				WHERE id = $${values.length}
+			`,
+			values,
+		);
+	}
+
+	private async updateGeneratedDocumentVersion(
+		manager: EntityManager,
+		documentId: string,
+		input: UpdateGeneratedDocumentVersionFields,
+	) {
+		const setClauses = [
+			"title = $1",
+			"owner_id = $2",
+			"version = $3",
+			"file_info = $4::jsonb",
+			"checksum_sha256 = $5",
+			"updated_at = $6",
+		];
+		const values: unknown[] = [
+			input.title,
+			input.ownerId,
+			input.version,
+			JSON.stringify(input.fileInfo),
+			input.checksumSha256,
+			input.updatedAt,
+		];
+
+		this.addOptionalGeneratedField(
+			setClauses,
+			values,
+			"description",
+			input.description,
+		);
+		this.addOptionalGeneratedField(
+			setClauses,
+			values,
+			"template_id",
+			input.templateId,
+		);
+		this.addOptionalGeneratedField(
+			setClauses,
+			values,
+			"template_name",
+			input.templateName,
+		);
+
+		if (input.status !== undefined) {
+			values.push(input.status);
+			setClauses.push(`status = $${values.length}`);
+			setClauses.push("archived_at = NULL");
+		}
+
+		values.push(documentId);
+		await manager.query(
+			`
+				UPDATE documents
+				SET ${setClauses.join(", ")}
+				WHERE id = $${values.length}
+			`,
+			values,
+		);
+	}
+
+	private addOptionalGeneratedField(
+		setClauses: string[],
+		values: unknown[],
+		columnName: string,
+		value: string | undefined,
+	) {
+		if (value === undefined) return;
+
+		values.push(value === "" ? null : value);
+		setClauses.push(`${columnName} = $${values.length}`);
+	}
+
+	private async insertDocumentVersion(
+		manager: EntityManager,
+		input: InsertDocumentVersionInput,
+	) {
+		await manager.query(
+			`
+				INSERT INTO document_versions (
+					document_id,
+					version,
+					file_info,
+					checksum_sha256,
+					created_at
+				)
+				VALUES ($1, $2, $3::jsonb, $4, $5)
+			`,
+			[
+				input.documentId,
+				input.version,
+				JSON.stringify(input.fileInfo),
+				input.checksumSha256,
+				input.createdAt,
+			],
+		);
+	}
+
+	private async syncDocumentTagsIfNeeded(
+		manager: EntityManager,
+		documentId: string,
+		tags?: string[],
+	) {
+		if (tags === undefined) return;
+
+		await this.syncDocumentTags(manager, documentId, tags);
+	}
+
+	private async syncDocumentTags(
+		manager: EntityManager,
+		documentId: string,
+		tags: string[],
+	) {
+		await manager.query("DELETE FROM document_tags WHERE document_id = $1", [
+			documentId,
+		]);
+
+		for (const tag of tags) {
+			const tagName = await this.ensureTag(manager, tag);
+			await manager.query(
+				`
+					INSERT INTO document_tags (document_id, tag_name)
+					VALUES ($1, $2)
+					ON CONFLICT DO NOTHING
+				`,
+				[documentId, tagName],
+			);
+		}
+	}
+
+	private async ensureTag(manager: EntityManager, tag: string) {
+		await manager.query(
+			`
+				INSERT INTO tags (name)
+				SELECT $1::varchar
+				WHERE NOT EXISTS (
+					SELECT 1 FROM tags WHERE lower(name) = lower($1::varchar)
+				)
+			`,
+			[tag],
+		);
+		const tagRows = await manager.query(
+			"SELECT name FROM tags WHERE lower(name) = lower($1::varchar) LIMIT 1",
+			[tag],
+		);
+
+		return String(tagRows[0]?.name ?? tag);
 	}
 
 	private async addTagsToDocuments(
@@ -400,6 +840,9 @@ export class DocumentsRepository {
 			d.id ILIKE $${params.length}
 			OR d.title ILIKE $${params.length}
 			OR d.description ILIKE $${params.length}
+			OR d.document_key ILIKE $${params.length}
+			OR d.template_id ILIKE $${params.length}
+			OR d.template_name ILIKE $${params.length}
 			OR d.key_type ILIKE $${params.length}
 			OR d.key_value ILIKE $${params.length}
 			OR d.sub_key ILIKE $${params.length}
@@ -465,6 +908,9 @@ export class DocumentsRepository {
 	private mapDocumentRow(row: Record<string, unknown>): DocumentRow {
 		return {
 			id: String(row.id),
+			documentKey: String(row.document_key),
+			templateId: row.template_id ? String(row.template_id) : null,
+			templateName: row.template_name ? String(row.template_name) : null,
 			title: String(row.title),
 			description: row.description ? String(row.description) : undefined,
 			status: row.status as DocumentStatus,
@@ -490,10 +936,25 @@ export class DocumentsRepository {
 			fileInfo: this.sanitizePublicFileInfo(
 				row.file_info as InternalFileInfo | undefined,
 			),
+			checksumSha256: String(row.checksum_sha256),
 			version: Number(row.version),
 			createdAt: this.toIsoString(row.created_at),
 			updatedAt: row.updated_at ? this.toIsoString(row.updated_at) : null,
 			archivedAt: row.archived_at ? this.toIsoString(row.archived_at) : null,
+		};
+	}
+
+	private mapDocumentVersionRow(
+		row: Record<string, unknown>,
+	): DocumentVersionRow {
+		return {
+			documentId: String(row.document_id),
+			version: Number(row.version),
+			fileInfo: this.sanitizePublicFileInfo(
+				row.file_info as InternalFileInfo | undefined,
+			) as PublicFileInfo,
+			checksumSha256: String(row.checksum_sha256),
+			createdAt: this.toIsoString(row.created_at),
 		};
 	}
 
@@ -512,10 +973,14 @@ export class DocumentsRepository {
 	private documentSelectColumnsSql() {
 		return `
 			d.id,
+			d.document_key,
+			d.template_id,
+			d.template_name,
 			d.title,
 			d.description,
 			d.status,
 			d.file_info,
+			d.checksum_sha256,
 			d.version,
 			d.created_at,
 			d.updated_at,

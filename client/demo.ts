@@ -1,4 +1,4 @@
-import { readFile, unlink } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   CreateDocumentRequest,
@@ -13,6 +13,7 @@ const keyType = 'project';
 const key = 'PRJ-001';
 const documentId = 'DOC-001';
 const subKey = 'PKG-001';
+const demoDocumentKey = 'CLIENT-DEMO-REPORT';
 
 const configuration = new Configuration({ basePath });
 const fetchApi = ((requestUrl: string, init?: any) =>
@@ -86,6 +87,9 @@ async function main() {
       file: new Blob([demoFileBuffer], { type: 'text/plain' }),
       fileName: '../report-avanzamento.txt',
       subKey,
+      documentKey: demoDocumentKey,
+      templateId: 'TPL-REPORT-DEMO',
+      templateName: 'Template report demo',
       title: 'Report avanzamento client demo',
       description: 'Documento demo registrato dal client TypeScript Fetch',
       ownerId: 'owner-001',
@@ -96,7 +100,70 @@ async function main() {
     key,
   );
   assertSafeGeneratedFileName(created.data.fileInfo.fileName);
-  console.log('created document:', created.data.id, created.data.title);
+  console.log(
+    'created document:',
+    created.data.id,
+    created.data.documentKey,
+    `v${created.data.version}`,
+  );
+
+  const sameFileUpdate = await documentsApi.documentKeysControllerCreateDocument(
+    {
+      file: new Blob([demoFileBuffer], { type: 'text/plain' }),
+      fileName: 'report-avanzamento.txt',
+      subKey,
+      documentKey: demoDocumentKey,
+      templateId: 'TPL-REPORT-DEMO',
+      templateName: 'Template report demo',
+      title: 'Report avanzamento client demo aggiornato',
+      description: 'Aggiornamento metadati con stesso contenuto file',
+      ownerId: 'owner-001',
+      status: CreateDocumentRequest.StatusEnum.InReview,
+      tags: ['Report', 'Progress', 'Demo'],
+    },
+    keyType,
+    key,
+  );
+  console.log('same checksum update:', sameFileUpdate.data.id, `v${sameFileUpdate.data.version}`);
+
+  const secondVersion = await documentsApi.documentKeysControllerCreateDocument(
+    {
+      file: new Blob([demoFileBuffer, '\nSeconda versione demo client.\n'], {
+        type: 'text/plain',
+      }),
+      fileName: 'report-avanzamento-v2.txt',
+      subKey,
+      documentKey: demoDocumentKey,
+      templateId: 'TPL-REPORT-DEMO',
+      templateName: 'Template report demo',
+      title: 'Report avanzamento client demo v2',
+      description: 'Nuova versione con contenuto file diverso',
+      ownerId: 'owner-001',
+      status: CreateDocumentRequest.StatusEnum.Approved,
+      tags: ['Report', 'Progress', 'Demo'],
+    },
+    keyType,
+    key,
+  );
+  console.log('new file version:', secondVersion.data.id, `v${secondVersion.data.version}`);
+
+  const versions = await documentsApi.documentKeysControllerGetDocumentVersions(
+    secondVersion.data.id,
+    keyType,
+    key,
+  );
+  if (versions.data.length < 2) {
+    throw new Error('Expected at least two versions for the demo document.');
+  }
+  console.log('document versions:', versions.data.map((item) => item.version).join(', '));
+
+  await documentsApi.documentKeysControllerDownloadDocumentVersionFile(
+    secondVersion.data.id,
+    1,
+    keyType,
+    key,
+  );
+  console.log('downloaded historical version: 1');
 
   const detail = await documentsApi.documentKeysControllerGetDocumentById(
     documentId,
@@ -121,7 +188,7 @@ async function main() {
   console.log('archived status:', archived.data.status);
 
   await expectArchivedConflict();
-  await removeUploadedDemoFile(created.data.fileInfo.fileName);
+  console.log('demo uploaded files kept in storage/documents for version history.');
 }
 
 function getDocuments(response: any) {
@@ -170,13 +237,6 @@ function assertSafeGeneratedFileName(fileName: string) {
   ) {
     throw new Error(`Generated file name is not safe: ${fileName}.`);
   }
-}
-
-async function removeUploadedDemoFile(fileName: string) {
-  if (!fileName.startsWith('uploaded-')) return;
-  await unlink(join(process.cwd(), '..', 'storage', 'documents', fileName)).catch(
-    () => undefined,
-  );
 }
 
 async function expectInvalidQueryParam() {

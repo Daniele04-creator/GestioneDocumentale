@@ -34,6 +34,9 @@ describe("DocumentsService", () => {
 	it("registers metadata for an existing document file", async () => {
 		const createdDocument = {
 			id: "DOC-020",
+			documentKey: "REPORT-AVANZAMENTO-DEMO",
+			templateId: "TPL-REPORT",
+			templateName: "Template report avanzamento",
 			title: "Report avanzamento",
 			description: "Documento prodotto da una funzione esterna",
 			status: "draft",
@@ -50,6 +53,8 @@ describe("DocumentsService", () => {
 				mimeType: "text/plain",
 				sizeBytes: 210,
 			},
+			checksumSha256:
+				"0000000000000000000000000000000000000000000000000000000000000000",
 			version: 1,
 			createdAt: new Date().toISOString(),
 			updatedAt: null,
@@ -60,7 +65,10 @@ describe("DocumentsService", () => {
 			keyExists: jest.fn().mockResolvedValue(true),
 			subKeyExists: jest.fn().mockResolvedValue(true),
 			ownerExists: jest.fn().mockResolvedValue(true),
-			createForKey: jest.fn().mockResolvedValue(createdDocument),
+			upsertGeneratedDocument: jest.fn().mockResolvedValue({
+				document: createdDocument,
+				storedFileUsed: true,
+			}),
 		} as unknown as DocumentsRepository;
 
 		const service = new DocumentsService(repository);
@@ -77,6 +85,8 @@ describe("DocumentsService", () => {
 					sizeBytes: 210,
 					storagePath: "storage/documents/uploaded-report-avanzamento.txt",
 				},
+				checksumSha256:
+					"0000000000000000000000000000000000000000000000000000000000000000",
 			});
 
 		const response = await service.createDocument(
@@ -84,6 +94,9 @@ describe("DocumentsService", () => {
 			"PRJ-001",
 			{
 				subKey: "PKG-001",
+				documentKey: "REPORT-AVANZAMENTO-DEMO",
+				templateId: "TPL-REPORT",
+				templateName: "Template report avanzamento",
 				title: "Report avanzamento",
 				description: "Documento prodotto da una funzione esterna",
 				ownerId: "owner-001",
@@ -98,12 +111,16 @@ describe("DocumentsService", () => {
 		);
 
 		expect(response.id).toBe("DOC-020");
-		expect(repository.createForKey).toHaveBeenCalledWith(
+		expect(repository.upsertGeneratedDocument).toHaveBeenCalledWith(
 			"project",
 			"PRJ-001",
 			expect.objectContaining({
 				subKey: "PKG-001",
-				status: "draft",
+				documentKey: "REPORT-AVANZAMENTO-DEMO",
+				templateId: "TPL-REPORT",
+				templateName: "Template report avanzamento",
+				checksumSha256:
+					"0000000000000000000000000000000000000000000000000000000000000000",
 				tags: ["Report"],
 			}),
 		);

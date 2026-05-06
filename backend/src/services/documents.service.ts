@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Injectable } from "@nestjs/common";
@@ -34,10 +34,14 @@ const QUERY_FIELDS = new Set(["subKey", "ownerId", "tag", "status", "search"]);
 type DocumentListItem = Pick<
 	DocumentRow,
 	| "id"
+	| "documentKey"
+	| "templateId"
+	| "templateName"
 	| "title"
 	| "description"
 	| "status"
 	| "version"
+	| "checksumSha256"
 	| "updatedAt"
 	| "owner"
 	| "tags"
@@ -75,6 +79,7 @@ type StoredDocumentFile = {
 		sizeBytes: number;
 		storagePath: string;
 	};
+	checksumSha256: string;
 };
 
 @Injectable()
@@ -137,14 +142,17 @@ export class DocumentsService {
 
 		const storedFile = await this.storeUploadedDocumentFile(file);
 
-		let createdDocument: DocumentRow | undefined;
+		let result:
+			| Awaited<ReturnType<DocumentsRepository["upsertGeneratedDocument"]>>
+			| undefined;
 		try {
-			createdDocument = await this.documentsRepository.createForKey(
+			result = await this.documentsRepository.upsertGeneratedDocument(
 				validKeyType,
 				validKey,
 				{
 					...payload,
 					fileInfo: storedFile.fileInfo,
+					checksumSha256: storedFile.checksumSha256,
 				},
 			);
 		} catch (error) {
@@ -152,9 +160,13 @@ export class DocumentsService {
 			throw error;
 		}
 
-		if (!createdDocument) throw documentNotFound();
+		if (!result?.storedFileUsed) {
+			await fs.unlink(storedFile.absolutePath).catch(() => undefined);
+		}
 
-		return createdDocument;
+		if (!result?.document) throw documentNotFound();
+
+		return result.document;
 	}
 
 	async getDocumentById(keyType: string, key: string, documentId: string) {
@@ -185,6 +197,63 @@ export class DocumentsService {
 			validKey,
 			validDocumentId,
 		);
+
+		if (!fileInfo) throw documentNotFound();
+		if (!fileInfo.storagePath) throw documentFileNotFound();
+
+		const absolutePath = this.resolveStoragePath(fileInfo.storagePath);
+		const fileExists = await this.isExistingFile(absolutePath);
+
+		if (!fileExists) throw documentFileNotFound();
+
+		return {
+			absolutePath,
+			fileName: fileInfo.fileName || path.basename(absolutePath),
+			mimeType: fileInfo.mimeType || "application/octet-stream",
+		};
+	}
+
+	async getDocumentVersions(keyType: string, key: string, documentId: string) {
+		const validKeyType = this.validateKeyType(keyType);
+		const validKey = this.validateKey(key);
+		const validDocumentId = this.validateDocumentId(documentId);
+		await this.ensureKeyExists(validKeyType, validKey);
+
+		const document = await this.documentsRepository.findByKeyAndId(
+			validKeyType,
+			validKey,
+			validDocumentId,
+		);
+		if (!document) throw documentNotFound();
+
+		const versions = await this.documentsRepository.findVersionsByKeyAndId(
+			validKeyType,
+			validKey,
+			validDocumentId,
+		);
+
+		return { data: versions };
+	}
+
+	async getDocumentVersionFile(
+		keyType: string,
+		key: string,
+		documentId: string,
+		version: string,
+	) {
+		const validKeyType = this.validateKeyType(keyType);
+		const validKey = this.validateKey(key);
+		const validDocumentId = this.validateDocumentId(documentId);
+		const validVersion = this.validateVersion(version);
+		await this.ensureKeyExists(validKeyType, validKey);
+
+		const fileInfo =
+			await this.documentsRepository.findVersionFileInfoByKeyAndId(
+				validKeyType,
+				validKey,
+				validDocumentId,
+				validVersion,
+			);
 
 		if (!fileInfo) throw documentNotFound();
 		if (!fileInfo.storagePath) throw documentFileNotFound();
@@ -270,11 +339,21 @@ export class DocumentsService {
 	}
 
 	private validateDocumentId(documentId: string) {
-		if (typeof documentId !== "string" || !/^DOC-[0-9]{3}$/.test(documentId)) {
+		if (typeof documentId !== "string" || !/^DOC-[0-9]{3,}$/.test(documentId)) {
 			throw invalidDocumentId();
 		}
 
 		return documentId;
+	}
+
+	private validateVersion(version: string) {
+		const parsedVersion = Number(version);
+
+		if (!Number.isInteger(parsedVersion) || parsedVersion < 1) {
+			throw invalidQueryParam("Invalid document version.");
+		}
+
+		return parsedVersion;
 	}
 
 	private normalizeQuery(query: Record<string, unknown>) {
@@ -348,30 +427,44 @@ export class DocumentsService {
 
 	private normalizeCreatePayload(
 		body: CreateDocumentDto,
-	): Omit<CreateDocumentInput, "fileInfo"> {
+	): Omit<CreateDocumentInput, "fileInfo" | "checksumSha256"> {
 		const subKey = body.subKey.trim();
+		const documentKey = body.documentKey.trim();
 		const title = body.title.trim();
 		const ownerId = body.ownerId.trim();
-		const status = body.status ?? "draft";
+		const status = body.status;
+		const templateId = body.templateId?.trim();
+		const templateName = body.templateName?.trim();
 
 		if (subKey === "") throw invalidDocumentPatch("subKey is required");
+		if (documentKey === "")
+			throw invalidDocumentPatch("documentKey is required");
 		if (title === "") throw invalidDocumentPatch("title is required");
 		if (ownerId === "") throw invalidDocumentPatch("ownerId is required");
 
-		if (!CREATE_DOCUMENT_STATUS_VALUES.includes(status)) {
+		if (
+			status !== undefined &&
+			!CREATE_DOCUMENT_STATUS_VALUES.includes(status)
+		) {
 			throw invalidDocumentPatch("status is not valid for document creation");
 		}
 
-		const tags = Array.from(
-			new Set(
-				(body.tags ?? [])
-					.map((tag) => tag.trim())
-					.filter((tag) => tag.length > 0),
-			),
-		);
+		const tags =
+			body.tags === undefined
+				? undefined
+				: Array.from(
+						new Set(
+							body.tags
+								.map((tag) => tag.trim())
+								.filter((tag) => tag.length > 0),
+						),
+					);
 
 		return {
 			subKey,
+			documentKey,
+			templateId: templateId === "" ? undefined : templateId,
+			templateName: templateName === "" ? undefined : templateName,
 			title,
 			description: body.description,
 			ownerId,
@@ -391,6 +484,9 @@ export class DocumentsService {
 		const fileName = await this.safeStoredFileName(file.originalname);
 		const storagePath = `storage/documents/${fileName}`;
 		const absolutePath = this.resolveStoragePath(storagePath, true);
+		const checksumSha256 = createHash("sha256")
+			.update(file.buffer)
+			.digest("hex");
 
 		await fs.mkdir(STORAGE_ROOT, { recursive: true });
 		await fs
@@ -412,6 +508,7 @@ export class DocumentsService {
 				sizeBytes: file.size,
 				storagePath,
 			},
+			checksumSha256,
 		};
 	}
 
@@ -502,10 +599,14 @@ export class DocumentsService {
 			this.incrementStatus(documentSubKey.statusSummary, document.status);
 			documentSubKey.documents.push({
 				id: document.id,
+				documentKey: document.documentKey,
+				templateId: document.templateId,
+				templateName: document.templateName,
 				title: document.title,
 				description: document.description,
 				status: document.status,
 				version: document.version,
+				checksumSha256: document.checksumSha256,
 				updatedAt: document.updatedAt,
 				owner: document.owner,
 				tags: document.tags ?? [],

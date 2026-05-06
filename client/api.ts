@@ -86,10 +86,14 @@ export interface FileInfo {
 
 export interface DocumentListItem {
     id: string;
+    documentKey: string;
+    templateId: string | null;
+    templateName: string | null;
     title: string;
     description?: string;
     status: DocumentListItem.StatusEnum;
     version: number;
+    checksumSha256: string;
     updatedAt: Date | null;
     owner: DocumentOwner;
     tags: Array<DocumentTag>;
@@ -124,6 +128,18 @@ export namespace DocumentDetail {
 
 export interface DocumentDetailResponse {
     data: DocumentDetail;
+}
+
+export interface DocumentVersion {
+    documentId: string;
+    version: number;
+    fileInfo: FileInfo;
+    checksumSha256: string;
+    createdAt: Date;
+}
+
+export interface DocumentVersionsResponse {
+    data: Array<DocumentVersion>;
 }
 
 export interface DocumentSubKeyGroup {
@@ -167,6 +183,9 @@ export interface CreateDocumentRequest {
     file: Blob;
     fileName?: string;
     subKey: string;
+    documentKey: string;
+    templateId?: string;
+    templateName?: string;
     title: string;
     description?: string | null;
     ownerId: string;
@@ -243,6 +262,9 @@ export class DocumentKeysApi extends BaseAPI {
         const formData = new FormData();
         formData.append("file", body.file, body.fileName || "document");
         formData.append("subKey", body.subKey);
+        formData.append("documentKey", body.documentKey);
+        if (body.templateId !== undefined) formData.append("templateId", body.templateId);
+        if (body.templateName !== undefined) formData.append("templateName", body.templateName);
         formData.append("title", body.title);
         formData.append("ownerId", body.ownerId);
         if (body.description !== undefined && body.description !== null) formData.append("description", body.description);
@@ -260,6 +282,23 @@ export class DocumentKeysApi extends BaseAPI {
             `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents/${encodeURIComponent(documentId)}`,
             Object.assign({ method: "GET" }, options),
         );
+    }
+
+    public documentKeysControllerGetDocumentVersions(documentId: string, keyType: string, key: string, options?: any): Promise<DocumentVersionsResponse> {
+        return this.request<DocumentVersionsResponse>(
+            `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents/${encodeURIComponent(documentId)}/versions`,
+            Object.assign({ method: "GET" }, options),
+        );
+    }
+
+    public documentKeysControllerDownloadDocumentVersionFile(documentId: string, version: number, keyType: string, key: string, options?: any): Promise<Blob> {
+        return this.fetch(
+            this.basePath + `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents/${encodeURIComponent(documentId)}/versions/${encodeURIComponent(String(version))}/file`,
+            Object.assign({ method: "GET" }, options),
+        ).then((response) => {
+            if (response.status >= 200 && response.status < 300) return response.blob();
+            throw response;
+        });
     }
 
     public documentKeysControllerDownloadDocumentFile(documentId: string, keyType: string, key: string, options?: any): Promise<Blob> {

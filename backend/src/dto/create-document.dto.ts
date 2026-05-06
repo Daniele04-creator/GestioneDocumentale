@@ -21,6 +21,21 @@ export class CreateDocumentDto {
 
 	@IsString()
 	@MinLength(1)
+	@MaxLength(150)
+	documentKey!: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(150)
+	templateId?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(200)
+	templateName?: string;
+
+	@IsString()
+	@MinLength(1)
 	@MaxLength(200)
 	title!: string;
 

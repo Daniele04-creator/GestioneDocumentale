@@ -1,4 +1,4 @@
-const { readFile, unlink } = require('node:fs/promises');
+const { access, readFile } = require('node:fs/promises');
 const path = require('node:path');
 
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
@@ -6,6 +6,7 @@ const KEY_TYPE = 'project';
 const KEY = 'PRJ-001';
 const SUB_KEY = 'PKG-001';
 const DOCUMENT_ID = 'DOC-001';
+const CREATE_DOCUMENT_KEY = 'SMOKE-REPORT-AVANZAMENTO';
 const UPLOAD_SOURCE_FILE = path.join(
   __dirname,
   '..',
@@ -15,6 +16,9 @@ const UPLOAD_SOURCE_FILE = path.join(
 );
 const CREATE_DOCUMENT_BODY = {
   subKey: SUB_KEY,
+  documentKey: CREATE_DOCUMENT_KEY,
+  templateId: 'TPL-REPORT-SMOKE',
+  templateName: 'Template report smoke test',
   title: 'Report avanzamento smoke test',
   description: 'Documento demo registrato dallo smoke test.',
   ownerId: 'owner-001',
@@ -24,7 +28,9 @@ const CREATE_DOCUMENT_BODY = {
 
 const results = [];
 let createdDocumentId;
-let createdFileName;
+let firstVersionFileName;
+let secondVersionFileName;
+let firstVersionChecksum;
 
 function fail(message) {
   throw new Error(message);
@@ -102,7 +108,11 @@ async function expectJson(method, path, expectedStatus, body) {
   return result.body;
 }
 
-async function buildCreateDocumentForm(overrides = {}, fileName = '../report-avanzamento.txt') {
+async function buildCreateDocumentForm(
+  overrides = {},
+  fileName = '../report-avanzamento.txt',
+  fileSuffix = '',
+) {
   const body = {
     ...CREATE_DOCUMENT_BODY,
     ...overrides,
@@ -110,10 +120,13 @@ async function buildCreateDocumentForm(overrides = {}, fileName = '../report-ava
   const formData = new FormData();
   const fileBuffer = await readFile(UPLOAD_SOURCE_FILE);
 
-  formData.append('file', new Blob([fileBuffer], { type: 'text/plain' }), fileName);
-  formData.append('subKey', body.subKey);
-  formData.append('title', body.title);
-  formData.append('ownerId', body.ownerId);
+  formData.append('file', new Blob([fileBuffer, fileSuffix], { type: 'text/plain' }), fileName);
+  if (body.subKey !== undefined) formData.append('subKey', body.subKey);
+  if (body.documentKey !== undefined) formData.append('documentKey', body.documentKey);
+  if (body.templateId !== undefined) formData.append('templateId', body.templateId);
+  if (body.templateName !== undefined) formData.append('templateName', body.templateName);
+  if (body.title !== undefined) formData.append('title', body.title);
+  if (body.ownerId !== undefined) formData.append('ownerId', body.ownerId);
   if (body.description !== undefined) formData.append('description', body.description);
   if (body.status !== undefined) formData.append('status', body.status);
   for (const tag of body.tags || []) formData.append('tags', tag);
@@ -128,9 +141,12 @@ function buildCreateDocumentFormWithoutFile(overrides = {}) {
   };
   const formData = new FormData();
 
-  formData.append('subKey', body.subKey);
-  formData.append('title', body.title);
-  formData.append('ownerId', body.ownerId);
+  if (body.subKey !== undefined) formData.append('subKey', body.subKey);
+  if (body.documentKey !== undefined) formData.append('documentKey', body.documentKey);
+  if (body.templateId !== undefined) formData.append('templateId', body.templateId);
+  if (body.templateName !== undefined) formData.append('templateName', body.templateName);
+  if (body.title !== undefined) formData.append('title', body.title);
+  if (body.ownerId !== undefined) formData.append('ownerId', body.ownerId);
   if (body.description !== undefined) formData.append('description', body.description);
   if (body.status !== undefined) formData.append('status', body.status);
   for (const tag of body.tags || []) formData.append('tags', tag);
@@ -145,11 +161,13 @@ function assertSafeGeneratedFileName(fileName) {
   assert(fileName.startsWith('uploaded-'), 'Generated fileName should use uploaded- prefix.');
 }
 
-async function cleanupCreatedFile() {
-  if (!createdFileName || !createdFileName.startsWith('uploaded-')) return;
-  await unlink(path.join(__dirname, '..', 'storage', 'documents', createdFileName)).catch(
-    () => undefined,
-  );
+async function fileExists(fileName) {
+  try {
+    await access(path.join(__dirname, '..', 'storage', 'documents', fileName));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function main() {
@@ -225,7 +243,7 @@ async function main() {
     assert(body.code === 'INVALID_QUERY_PARAM', `Expected INVALID_QUERY_PARAM, got ${body.code}.`);
   });
 
-  await runTest('POST documents registers metadata for existing file', async () => {
+  await runTest('POST documents creates new documentKey version 1', async () => {
     const formData = await buildCreateDocumentForm();
     const body = await expectJson(
       'POST',
@@ -235,32 +253,117 @@ async function main() {
     );
 
     createdDocumentId = body.data && body.data.id;
-    createdFileName = body.data && body.data.fileInfo && body.data.fileInfo.fileName;
-    assert(/^DOC-[0-9]{3}$/.test(createdDocumentId), 'Expected generated DOC-XXX id.');
+    firstVersionFileName = body.data && body.data.fileInfo && body.data.fileInfo.fileName;
+    firstVersionChecksum = body.data && body.data.checksumSha256;
+    assert(/^DOC-[0-9]{3,}$/.test(createdDocumentId), 'Expected generated DOC-XXX id.');
+    assert(body.data.documentKey === CREATE_DOCUMENT_KEY, 'Expected created documentKey.');
+    assert(body.data.templateId === CREATE_DOCUMENT_BODY.templateId, 'Expected templateId.');
     assert(body.data.title === CREATE_DOCUMENT_BODY.title, 'Expected created title.');
     assert(body.data.status === 'draft', 'Expected default draft status.');
+    assert(body.data.version === 1, 'Expected version 1 for a new documentKey.');
+    assert(/^[a-f0-9]{64}$/.test(firstVersionChecksum), 'Expected SHA-256 checksum.');
     assert(body.data.subKey && body.data.subKey.id === SUB_KEY, `Expected subKey ${SUB_KEY}.`);
     assert(body.data.fileInfo, 'Expected public fileInfo.');
     assert(
       !Object.prototype.hasOwnProperty.call(body.data.fileInfo, 'storagePath'),
       'fileInfo must not expose storagePath.',
     );
-    assertSafeGeneratedFileName(createdFileName);
+    assertSafeGeneratedFileName(firstVersionFileName);
     assert(documentHasTag(body.data, 'Report'), 'Expected Report tag on created document.');
     assert(documentHasTag(body.data, 'Progress'), 'Expected Progress tag on created document.');
   });
 
-  await runTest('GET documents contains created document', async () => {
+  await runTest('POST same documentKey and same file updates metadata without new version', async () => {
     assert(createdDocumentId, 'Created document id is missing.');
-    const body = await expectJson('GET', `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`, 200);
-    const documents = getDocuments(body);
+    const formData = await buildCreateDocumentForm({
+      title: 'Report avanzamento smoke test aggiornato',
+      description: 'Aggiornamento metadati con stesso checksum.',
+      status: undefined,
+      tags: undefined,
+    });
+    const body = await expectJson(
+      'POST',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
+      201,
+      formData,
+    );
+
+    assert(body.data.id === createdDocumentId, 'Expected same logical document id.');
+    assert(body.data.version === 1, 'Expected version to stay 1 with same checksum.');
+    assert(body.data.checksumSha256 === firstVersionChecksum, 'Expected unchanged checksum.');
     assert(
-      documents.some((document) => document.id === createdDocumentId),
-      `Expected list to contain ${createdDocumentId}.`,
+      body.data.fileInfo.fileName === firstVersionFileName,
+      'Expected current file to remain the first stored file.',
+    );
+    assert(documentHasTag(body.data, 'Report'), 'Expected existing Report tag to be preserved.');
+    assert(documentHasTag(body.data, 'Progress'), 'Expected existing Progress tag to be preserved.');
+
+    const versions = await expectJson(
+      'GET',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}/versions`,
+      200,
+    );
+    assert(versions.data.length === 1, 'Expected only one version after same checksum update.');
+  });
+
+  await runTest('POST same documentKey and different file creates version 2', async () => {
+    assert(createdDocumentId, 'Created document id is missing.');
+    const formData = await buildCreateDocumentForm(
+      {
+        title: 'Report avanzamento smoke test v2',
+        description: 'Nuova versione con contenuto file diverso.',
+        status: 'approved',
+        tags: ['Report', 'Progress', 'Versione'],
+      },
+      'report-avanzamento-v2.txt',
+      '\nSeconda versione smoke test.\n',
+    );
+    const body = await expectJson(
+      'POST',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
+      201,
+      formData,
+    );
+
+    secondVersionFileName = body.data && body.data.fileInfo && body.data.fileInfo.fileName;
+    assert(body.data.id === createdDocumentId, 'Expected same logical document id.');
+    assert(body.data.version === 2, 'Expected version 2 with different checksum.');
+    assert(body.data.status === 'approved', 'Expected updated current status.');
+    assert(body.data.checksumSha256 !== firstVersionChecksum, 'Expected new checksum.');
+    assert(secondVersionFileName !== firstVersionFileName, 'Expected a new stored file name.');
+    assert(await fileExists(firstVersionFileName), 'Expected old version file to still exist.');
+    assert(await fileExists(secondVersionFileName), 'Expected new version file to exist.');
+  });
+
+  await runTest('GET versions returns document history', async () => {
+    assert(createdDocumentId, 'Created document id is missing.');
+    const body = await expectJson(
+      'GET',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}/versions`,
+      200,
+    );
+    assert(Array.isArray(body.data), 'Expected versions data array.');
+    assert(body.data.length === 2, 'Expected two versions.');
+    assert(body.data[0].version === 1, 'Expected first version number 1.');
+    assert(body.data[1].version === 2, 'Expected second version number 2.');
+    assert(body.data[0].checksumSha256 === firstVersionChecksum, 'Expected version 1 checksum.');
+    assert(
+      !Object.prototype.hasOwnProperty.call(body.data[0].fileInfo, 'storagePath'),
+      'version fileInfo must not expose storagePath.',
     );
   });
 
-  await runTest('GET created document detail returns 200', async () => {
+  await runTest('GET documents contains current created document version', async () => {
+    assert(createdDocumentId, 'Created document id is missing.');
+    const body = await expectJson('GET', `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`, 200);
+    const documents = getDocuments(body);
+    const createdDocument = documents.find((document) => document.id === createdDocumentId);
+    assert(createdDocument, `Expected list to contain ${createdDocumentId}.`);
+    assert(createdDocument.version === 2, 'Expected list to expose current version 2.');
+    assert(createdDocument.documentKey === CREATE_DOCUMENT_KEY, 'Expected list documentKey.');
+  });
+
+  await runTest('GET created document detail returns current version', async () => {
     assert(createdDocumentId, 'Created document id is missing.');
     const body = await expectJson(
       'GET',
@@ -268,9 +371,10 @@ async function main() {
       200,
     );
     assert(body.data && body.data.id === createdDocumentId, `Expected data.id ${createdDocumentId}.`);
+    assert(body.data.version === 2, 'Expected detail to expose current version 2.');
   });
 
-  await runTest('GET created document file returns 200', async () => {
+  await runTest('GET current document file returns latest version', async () => {
     assert(createdDocumentId, 'Created document id is missing.');
     const result = await request(
       'GET',
@@ -278,6 +382,23 @@ async function main() {
     );
     assert(result.response.status === 200, `Expected status 200, got ${result.response.status}.`);
     assert(String(result.body).length > 0, 'Expected non-empty file response.');
+    assert(
+      String(result.body).includes('Seconda versione smoke test.'),
+      'Expected current file to contain version 2 content.',
+    );
+  });
+
+  await runTest('GET version 1 file still returns old content', async () => {
+    assert(createdDocumentId, 'Created document id is missing.');
+    const result = await request(
+      'GET',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}/versions/1/file`,
+    );
+    assert(result.response.status === 200, `Expected status 200, got ${result.response.status}.`);
+    assert(
+      !String(result.body).includes('Seconda versione smoke test.'),
+      'Expected version 1 file not to contain version 2 content.',
+    );
   });
 
   await runTest('POST documents with missing subKey returns SUB_KEY_NOT_FOUND', async () => {
@@ -292,6 +413,38 @@ async function main() {
       formData,
     );
     assert(body.code === 'SUB_KEY_NOT_FOUND', `Expected SUB_KEY_NOT_FOUND, got ${body.code}.`);
+  });
+
+  await runTest('POST documents with missing documentKey returns INVALID_DOCUMENT_PATCH', async () => {
+    const formData = await buildCreateDocumentForm({
+      documentKey: undefined,
+      title: 'Missing documentKey smoke test',
+    });
+    const body = await expectJson(
+      'POST',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
+      400,
+      formData,
+    );
+    assert(
+      body.code === 'INVALID_DOCUMENT_PATCH',
+      `Expected INVALID_DOCUMENT_PATCH, got ${body.code}.`,
+    );
+  });
+
+  await runTest('POST documents with missing owner returns OWNER_NOT_FOUND', async () => {
+    const formData = await buildCreateDocumentForm({
+      documentKey: `${CREATE_DOCUMENT_KEY}-OWNER-NOT-FOUND`,
+      ownerId: 'owner-not-found',
+      title: 'Missing owner smoke test',
+    });
+    const body = await expectJson(
+      'POST',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
+      404,
+      formData,
+    );
+    assert(body.code === 'OWNER_NOT_FOUND', `Expected OWNER_NOT_FOUND, got ${body.code}.`);
   });
 
   await runTest('POST documents without file returns INVALID_DOCUMENT_FILE', async () => {
@@ -388,15 +541,12 @@ async function main() {
     assert(body.code === 'DOCUMENT_ARCHIVED', `Expected DOCUMENT_ARCHIVED, got ${body.code}.`);
   });
 
-  await cleanupCreatedFile();
-
   const failed = results.filter((result) => !result.ok);
   const passed = results.length - failed.length;
 
   console.log('');
   console.log(`Smoke test summary: ${passed}/${results.length} passed.`);
-  console.log('After this smoke test, run npm run db:seed to restore DOC-001.');
-  console.log('For a fully clean demo dataset, run npm run db:schema && npm run db:seed.');
+  console.log('After this smoke test, run npm run db:schema && npm run db:seed for a clean dataset.');
 
   if (failed.length > 0) {
     process.exit(1);

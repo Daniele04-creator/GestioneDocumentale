@@ -17,13 +17,15 @@ Ogni documento e' associato a:
 - un `keyType`, cioe' il tipo del contenitore generale;
 - una `key`, cioe' l'identificativo del contenitore generale;
 - una `subKey`, cioe' il sotto-elemento documentale;
+- un `documentKey`, cioe' la chiave logica del documento nel contesto `keyType + key + subKey`;
+- un eventuale `templateId` / `templateName`, che descrive il template sorgente usato da un modulo esterno;
 - un owner/responsabile documentale;
 - uno o piu' tag;
 - un file locale demo usato per il download.
 
 `keyType` rende il modulo riusabile per piu' contesti, ad esempio portfolio, program o project, senza legare il dominio documentale a una sola entita'.
 
-La generazione automatica o stampa da template non e' implementata direttamente in questo modulo. Eventuali documenti generati da servizi esterni sono trattati come documenti gia' disponibili nel repository documentale.
+La generazione automatica o stampa da template non e' implementata direttamente in questo modulo. Eventuali documenti generati da servizi esterni entrano nel documentale tramite acquisizione multipart del file finale e dei metadati.
 
 ## Struttura del progetto
 
@@ -68,6 +70,8 @@ GET    /api/v1/document-keys/{keyType}/{key}/documents
 POST   /api/v1/document-keys/{keyType}/{key}/documents
 GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/file
+GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions
+GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions/{version}/file
 PATCH  /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 DELETE /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 ```
@@ -75,6 +79,8 @@ DELETE /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 Il backend usa lo schema PostgreSQL esistente e mantiene `synchronize: false` in TypeORM. Il download usa `file_info.storagePath` internamente, ma non espone `storagePath` nelle response pubbliche.
 
 Il `POST /documents` acquisisce in `multipart/form-data` il documento finale prodotto da un modulo esterno, salva fisicamente il file in `storage/documents/` e registra i metadati nel database. Non e' upload manuale libero da UI: e' l'ingresso tecnico del documento gia' generato dal processo applicativo.
+
+`documentKey` non coincide con `templateId`: il `templateId` identifica il template sorgente, mentre `documentKey` identifica il documento logico generato nel contesto `keyType + key + subKey`. Se arriva lo stesso `documentKey` con lo stesso checksum SHA-256, il backend aggiorna solo i metadati. Se arriva lo stesso `documentKey` con contenuto diverso, crea una nuova versione, aggiorna il documento corrente e non sovrascrive i file precedenti.
 
 ## OpenAPI e client
 
@@ -114,12 +120,15 @@ Lo schema crea le tabelle principali:
 - `document_sub_keys`
 - `owners`
 - `documents`
+- `document_versions`
 - `tags`
 - `document_tags`
 
 Il seed popola dati demo e documenti collegati a file locali in `storage/documents/`.
 
 Gli identificativi pubblici dei documenti restano nel formato `DOC-001`, `DOC-020`, ecc. e sono generati tramite la sequence PostgreSQL `document_id_seq`, sincronizzata dal seed sui documenti demo esistenti.
+
+La tabella `documents` contiene la versione corrente e il checksum SHA-256 corrente. La tabella `document_versions` mantiene lo storico dei file e dei checksum per ogni versione.
 
 Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Copiare `.env.example` in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
 
@@ -227,12 +236,13 @@ Il progetto valida:
 - struttura dati di base;
 - filtri della home documentale;
 - acquisizione tecnica del documento finale e registrazione dei metadati;
+- versionamento storico basato su `documentKey` e checksum SHA-256;
 - tag e owner;
 - download file;
 - update e archiviazione logica;
 - client generato da OpenAPI.
 
-Non include funzionalita' fuori scope come autenticazione, ACL, upload manuale libero, generazione template, audit trail avanzato, versioning storico, condivisione o esportazione avanzata.
+Non include funzionalita' fuori scope come autenticazione, ACL, upload manuale libero, generazione template, audit trail avanzato, condivisione o esportazione avanzata.
 
 ## Prossimi sviluppi
 

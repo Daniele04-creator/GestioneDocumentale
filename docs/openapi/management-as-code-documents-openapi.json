@@ -216,7 +216,7 @@
         ]
       },
       "post": {
-        "description": "Acquisisce un documento finale prodotto da un modulo esterno, salva fisicamente il file nello storage documentale e registra i metadati nel database. Non rappresenta upload manuale libero da UI.",
+        "description": "Acquisisce un documento finale prodotto da un modulo esterno. Se documentKey non esiste nel contesto keyType/key/subKey crea un nuovo documento versione 1; se esiste e il checksum SHA-256 e uguale aggiorna solo i metadati; se esiste e il checksum cambia salva una nuova versione senza sovrascrivere i file precedenti.",
         "operationId": "DocumentKeysController_createDocument",
         "parameters": [
           {
@@ -253,6 +253,9 @@
                   "value": {
                     "file": "<binary file>",
                     "subKey": "PKG-001",
+                    "documentKey": "TPL-REPORT-MENSILE-2026-01",
+                    "templateId": "TPL-REPORT-MENSILE",
+                    "templateName": "Template report mensile",
                     "title": "Report avanzamento",
                     "description": "Documento prodotto da una funzione esterna",
                     "ownerId": "owner-001",
@@ -269,7 +272,7 @@
         },
         "responses": {
           "201": {
-            "description": "Document metadata registered.",
+            "description": "Document created, metadata updated, or new version registered.",
             "content": {
               "application/json": {
                 "schema": {
@@ -338,7 +341,7 @@
             }
           }
         },
-        "summary": "Register document metadata",
+        "summary": "Acquire or version generated document",
         "tags": [
           "Document keys"
         ]
@@ -788,6 +791,238 @@
           "Document keys"
         ]
       }
+    },
+    "/api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions": {
+      "get": {
+        "tags": [
+          "Document keys"
+        ],
+        "summary": "List document versions",
+        "description": "Restituisce lo storico delle versioni file per un documento nel contesto indicato.",
+        "operationId": "DocumentKeysController_getDocumentVersions",
+        "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "pattern": "^DOC-[0-9]{3,}$",
+              "example": "DOC-001"
+            },
+            "description": "ID del documento"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document versions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentVersionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid document id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "INVALID_DOCUMENT_ID": {
+                    "summary": "INVALID_DOCUMENT_ID",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_ID",
+                      "message": "Invalid document id."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key or document not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
+                    "value": {
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
+                    }
+                  },
+                  "DOCUMENT_NOT_FOUND": {
+                    "summary": "DOCUMENT_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_NOT_FOUND",
+                      "message": "Document not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-keys/{keyType}/{key}/documents/{documentId}/versions/{version}/file": {
+      "get": {
+        "tags": [
+          "Document keys"
+        ],
+        "summary": "Download document version file",
+        "description": "Scarica il file associato a una versione storica del documento.",
+        "operationId": "DocumentKeysController_downloadDocumentVersionFile",
+        "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          },
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "pattern": "^DOC-[0-9]{3,}$",
+              "example": "DOC-001"
+            },
+            "description": "ID del documento"
+          },
+          {
+            "name": "version",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            },
+            "description": "Versione storica del documento"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version file stream.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid document id or version.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "INVALID_DOCUMENT_ID": {
+                    "summary": "INVALID_DOCUMENT_ID",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_ID",
+                      "message": "Invalid document id."
+                    }
+                  },
+                  "INVALID_QUERY_PARAM": {
+                    "summary": "INVALID_QUERY_PARAM",
+                    "value": {
+                      "code": "INVALID_QUERY_PARAM",
+                      "message": "Invalid document version."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Key, document, version or file not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
+                    "value": {
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
+                    }
+                  },
+                  "DOCUMENT_NOT_FOUND": {
+                    "summary": "DOCUMENT_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_NOT_FOUND",
+                      "message": "Document not found."
+                    }
+                  },
+                  "DOCUMENT_FILE_NOT_FOUND": {
+                    "summary": "DOCUMENT_FILE_NOT_FOUND",
+                    "value": {
+                      "code": "DOCUMENT_FILE_NOT_FOUND",
+                      "message": "Document file not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "info": {
@@ -998,12 +1233,33 @@
           "version",
           "updatedAt",
           "owner",
-          "tags"
+          "tags",
+          "documentKey",
+          "templateId",
+          "templateName",
+          "checksumSha256"
         ],
         "properties": {
           "id": {
             "type": "string",
             "example": "DOC-001"
+          },
+          "documentKey": {
+            "type": "string",
+            "example": "SRS-SPECIFICATION",
+            "description": "Chiave logica del documento generato nel contesto keyType/key/subKey."
+          },
+          "templateId": {
+            "type": "string",
+            "nullable": true,
+            "example": "TPL-SRS",
+            "description": "Identificativo del template sorgente, se disponibile."
+          },
+          "templateName": {
+            "type": "string",
+            "nullable": true,
+            "example": "SRS specification template",
+            "description": "Nome descrittivo del template sorgente, se disponibile."
           },
           "title": {
             "type": "string",
@@ -1027,6 +1283,11 @@
             "type": "integer",
             "minimum": 1,
             "example": 1
+          },
+          "checksumSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "example": "3286318d7c501f31d48312f3226a78acd7619e716313ede1548047b476cdce3e"
           },
           "updatedAt": {
             "type": "string",
@@ -1060,12 +1321,33 @@
           "createdAt",
           "updatedAt",
           "archivedAt",
-          "tags"
+          "tags",
+          "documentKey",
+          "templateId",
+          "templateName",
+          "checksumSha256"
         ],
         "properties": {
           "id": {
             "type": "string",
             "example": "DOC-001"
+          },
+          "documentKey": {
+            "type": "string",
+            "example": "SRS-SPECIFICATION",
+            "description": "Chiave logica del documento generato nel contesto keyType/key/subKey."
+          },
+          "templateId": {
+            "type": "string",
+            "nullable": true,
+            "example": "TPL-SRS",
+            "description": "Identificativo del template sorgente, se disponibile."
+          },
+          "templateName": {
+            "type": "string",
+            "nullable": true,
+            "example": "SRS specification template",
+            "description": "Nome descrittivo del template sorgente, se disponibile."
           },
           "title": {
             "type": "string",
@@ -1089,6 +1371,11 @@
             "type": "integer",
             "minimum": 1,
             "example": 1
+          },
+          "checksumSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "example": "3286318d7c501f31d48312f3226a78acd7619e716313ede1548047b476cdce3e"
           },
           "updatedAt": {
             "type": "string",
@@ -1312,7 +1599,8 @@
           "file",
           "subKey",
           "title",
-          "ownerId"
+          "ownerId",
+          "documentKey"
         ],
         "properties": {
           "file": {
@@ -1323,6 +1611,23 @@
           "subKey": {
             "type": "string",
             "example": "PKG-001"
+          },
+          "documentKey": {
+            "type": "string",
+            "maxLength": 150,
+            "example": "TPL-REPORT-MENSILE-2026-01",
+            "description": "Chiave logica del documento generato nel contesto keyType/key/subKey."
+          },
+          "templateId": {
+            "type": "string",
+            "maxLength": 150,
+            "example": "TPL-REPORT-MENSILE",
+            "description": "Template sorgente usato dal modulo esterno per generare il documento."
+          },
+          "templateName": {
+            "type": "string",
+            "maxLength": 200,
+            "example": "Template report mensile"
           },
           "title": {
             "type": "string",
@@ -1357,6 +1662,54 @@
               "Report",
               "Progress"
             ]
+          }
+        }
+      },
+      "DocumentVersion": {
+        "type": "object",
+        "required": [
+          "documentId",
+          "version",
+          "fileInfo",
+          "checksumSha256",
+          "createdAt"
+        ],
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "example": "DOC-020"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "fileInfo": {
+            "$ref": "#/components/schemas/FileInfo"
+          },
+          "checksumSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "example": "3286318d7c501f31d48312f3226a78acd7619e716313ede1548047b476cdce3e"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-01T10:00:00.000Z"
+          }
+        }
+      },
+      "DocumentVersionsResponse": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentVersion"
+            }
           }
         }
       }

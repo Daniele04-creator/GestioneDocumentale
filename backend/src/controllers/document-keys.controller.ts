@@ -110,6 +110,38 @@ export class DocumentKeysController {
 		return new StreamableFile(createReadStream(file.absolutePath));
 	}
 
+	@Get("documents/:documentId/versions/:version/file")
+	async downloadDocumentVersionFile(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
+		@Param("documentId") documentId: string,
+		@Param("version") version: string,
+		@Res({ passthrough: true }) response: Response,
+	) {
+		const file = await this.documentsService.getDocumentVersionFile(
+			keyType,
+			key,
+			documentId,
+			version,
+		);
+
+		response.set({
+			"Content-Type": file.mimeType,
+			"Content-Disposition": `attachment; filename="${file.fileName}"`,
+		});
+
+		return new StreamableFile(createReadStream(file.absolutePath));
+	}
+
+	@Get("documents/:documentId/versions")
+	getDocumentVersions(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
+		@Param("documentId") documentId: string,
+	) {
+		return this.documentsService.getDocumentVersions(keyType, key, documentId);
+	}
+
 	@Get("documents/:documentId")
 	async getDocumentById(
 		@Param("keyType") keyType: string,
