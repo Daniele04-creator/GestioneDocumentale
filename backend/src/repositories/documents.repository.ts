@@ -454,13 +454,11 @@ export class DocumentsRepository {
 	private async nextDocumentId(manager: EntityManager) {
 		const rows = await manager.query(
 			`
-				SELECT COALESCE(MAX((substring(id FROM 5))::int), 0)::int AS max_id
-				FROM documents
-				WHERE id ~ '^DOC-[0-9]{3}$'
+				SELECT nextval('document_id_seq')::int AS next_id
 			`,
 		);
 
-		const nextNumber = Number(rows[0]?.max_id ?? 0) + 1;
+		const nextNumber = Number(rows[0]?.next_id);
 		return `DOC-${String(nextNumber).padStart(3, "0")}`;
 	}
 

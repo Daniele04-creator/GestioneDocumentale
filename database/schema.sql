@@ -4,6 +4,9 @@ DROP TABLE IF EXISTS tags CASCADE;
 DROP TABLE IF EXISTS owners CASCADE;
 DROP TABLE IF EXISTS document_sub_keys CASCADE;
 DROP TABLE IF EXISTS document_keys CASCADE;
+DROP SEQUENCE IF EXISTS document_id_seq;
+
+CREATE SEQUENCE document_id_seq START WITH 1 INCREMENT BY 1;
 
 CREATE TABLE document_keys (
   key_type VARCHAR(50) NOT NULL,
@@ -57,7 +60,7 @@ CREATE TABLE documents (
   CONSTRAINT fk_documents_sub_key FOREIGN KEY (key_type, key_value, sub_key)
     REFERENCES document_sub_keys(key_type, key_value, sub_key)
     ON DELETE RESTRICT,
-  CONSTRAINT chk_documents_id_format CHECK (id ~ '^DOC-[0-9]{3}$'),
+  CONSTRAINT chk_documents_id_format CHECK (id ~ '^DOC-[0-9]{3,}$'),
   CHECK (
     file_info ? 'fileName'
     AND file_info ? 'mimeType'

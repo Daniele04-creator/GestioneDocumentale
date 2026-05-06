@@ -365,6 +365,19 @@ SET
   updated_at = EXCLUDED.updated_at,
   archived_at = EXCLUDED.archived_at;
 
+SELECT setval(
+  'document_id_seq',
+  COALESCE(
+    (
+      SELECT MAX((substring(id FROM 5))::int)
+      FROM documents
+      WHERE id ~ '^DOC-[0-9]+$'
+    ),
+    0
+  ),
+  true
+);
+
 INSERT INTO document_tags (document_id, tag_name)
 VALUES
   ('DOC-001', 'Requisiti'),

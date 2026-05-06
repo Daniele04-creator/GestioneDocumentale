@@ -119,6 +119,8 @@ Lo schema crea le tabelle principali:
 
 Il seed popola dati demo e documenti collegati a file locali in `storage/documents/`.
 
+Gli identificativi pubblici dei documenti restano nel formato `DOC-001`, `DOC-020`, ecc. e sono generati tramite la sequence PostgreSQL `document_id_seq`, sincronizzata dal seed sui documenti demo esistenti.
+
 Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Copiare `.env.example` in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
 
 ## Installazione ed esecuzione
