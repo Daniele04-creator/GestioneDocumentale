@@ -546,7 +546,7 @@ async function main() {
 
   console.log('');
   console.log(`Smoke test summary: ${passed}/${results.length} passed.`);
-  console.log('After this smoke test, run npm run db:schema && npm run db:seed for a clean dataset.');
+  console.log('After this smoke test, run npm run db:reset for a clean dataset.');
 
   if (failed.length > 0) {
     process.exit(1);

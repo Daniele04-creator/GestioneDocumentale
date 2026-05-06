@@ -17,7 +17,9 @@
     "client:build": "npm --prefix client run build",
     "client:demo": "npm --prefix client run demo",
     "test:api": "node scripts/smoke-test-api.js",
-    "db:schema": "node scripts/run-schema.js",
+    "db:migrate": "npm --prefix backend run migration:run",
+    "db:revert": "npm --prefix backend run migration:revert",
+    "db:reset": "npm run db:revert && npm run db:migrate && npm run db:seed",
     "db:seed": "node scripts/run-seed.js"
   },
   "dependencies": {

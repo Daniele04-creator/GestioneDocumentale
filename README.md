@@ -2,7 +2,7 @@
 
 Prototipo locale del modulo documentale per il progetto **Management as Code**.
 
-Il repository contiene il backend applicativo NestJS + TypeScript, un client TypeScript Fetch generato da OpenAPI, il contratto Swagger/OpenAPI, schema e seed PostgreSQL, script di supporto e file demo per il download documentale. Il lavoro supporta il tirocinio curriculare di Informatica di Daniele e non va presentato come prodotto definitivo di produzione.
+Il repository contiene il backend applicativo NestJS + TypeScript, un client TypeScript Fetch generato da OpenAPI, il contratto Swagger/OpenAPI, migration TypeORM, seed PostgreSQL, script di supporto e file demo per il download documentale. Il lavoro supporta il tirocinio curriculare di Informatica di Daniele e non va presentato come prodotto definitivo di produzione.
 
 ## Contesto
 
@@ -33,9 +33,9 @@ La generazione automatica o stampa da template non e' implementata direttamente 
 .
 |-- backend/            # Backend NestJS + TypeScript principale
 |-- client/             # Client TypeScript Fetch generato da OpenAPI e demo client
-|-- database/           # Schema SQL e seed PostgreSQL
+|-- database/           # Seed PostgreSQL con dati demo
 |-- docs/openapi/       # Contratto OpenAPI/Swagger JSON
-|-- scripts/            # Script per schema, seed e smoke test API
+|-- scripts/            # Script per seed e smoke test API
 |-- storage/documents/  # File demo locali collegati ai documenti seed
 |-- AGENTS.md           # Note operative del progetto per Codex
 |-- package.json        # Script root di orchestrazione
@@ -76,7 +76,7 @@ PATCH  /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 DELETE /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 ```
 
-Il backend usa lo schema PostgreSQL esistente e mantiene `synchronize: false` in TypeORM. Il download usa `file_info.storagePath` internamente, ma non espone `storagePath` nelle response pubbliche.
+Il backend usa migration TypeORM versionate e mantiene `synchronize: false`. Il download usa `file_info.storagePath` internamente, ma non espone `storagePath` nelle response pubbliche.
 
 Il `POST /documents` acquisisce in `multipart/form-data` il documento finale prodotto da un modulo esterno, salva fisicamente il file in `storage/documents/` e registra i metadati nel database. Non e' upload manuale libero da UI: e' l'ingresso tecnico del documento gia' generato dal processo applicativo.
 
@@ -107,14 +107,21 @@ In questo modo la pagina carica subito una struttura leggera e recupera i docume
 
 ## Database
 
-Il database usa PostgreSQL. I file principali sono:
+Il database usa PostgreSQL. Lo schema e' gestito da migration TypeORM versionate in:
 
 ```text
-database/schema.sql
+backend/src/database/migrations/
+```
+
+Il seed demo resta separato e si trova in:
+
+```text
 database/seed.sql
 ```
 
-Lo schema crea le tabelle principali:
+Le migration sono la fonte ufficiale dello schema DB; non usare `synchronize: true`.
+
+La migration iniziale crea le tabelle principali:
 
 - `document_keys`
 - `document_sub_keys`
@@ -124,7 +131,7 @@ Lo schema crea le tabelle principali:
 - `tags`
 - `document_tags`
 
-Il seed popola dati demo e documenti collegati a file locali in `storage/documents/`.
+Il seed popola solo dati demo e documenti collegati a file locali in `storage/documents/`.
 
 Gli identificativi pubblici dei documenti restano nel formato `DOC-001`, `DOC-020`, ecc. e sono generati tramite la sequence PostgreSQL `document_id_seq`, sincronizzata dal seed sui documenti demo esistenti.
 
@@ -160,11 +167,17 @@ npm --prefix backend install
 npm --prefix client install
 ```
 
-Applicare schema e dati demo:
+Applicare migration e dati demo:
 
 ```bash
-npm run db:schema
+npm run db:migrate
 npm run db:seed
+```
+
+Per azzerare l'ambiente locale dopo test mutanti e ricreare struttura + dati demo:
+
+```bash
+npm run db:reset
 ```
 
 Build backend:
@@ -204,10 +217,10 @@ Eseguire il demo client TypeScript Fetch:
 npm run client:demo
 ```
 
-Alcuni test aggiornano o archiviano il documento demo `DOC-001`. Dopo smoke test o demo client, ripristinare i dati con:
+Alcuni test aggiornano o archiviano il documento demo `DOC-001`. Dopo smoke test o demo client, ripristinare struttura e dati demo con:
 
 ```bash
-npm run db:seed
+npm run db:reset
 ```
 
 ## File locali e versionamento
