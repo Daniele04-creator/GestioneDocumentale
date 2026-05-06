@@ -23,7 +23,6 @@ import {
 type StatusSummary = Record<DocumentStatus, number>;
 const QUERY_FIELDS = new Set([
 	"packageId",
-	"taskId",
 	"ownerId",
 	"tag",
 	"status",
@@ -41,40 +40,22 @@ type DocumentListItem = Pick<
 	| "tags"
 >;
 
-type DocumentTaskGroup = {
-	id: string;
-	name: string;
-	documentCount: number;
-	statusSummary: StatusSummary;
-	documents: DocumentListItem[];
-};
-
 type DocumentPackageGroup = {
 	project: DocumentRow["project"];
 	id: string;
 	name: string;
 	parentPackage: DocumentRow["parentPackage"];
-	taskCount: number;
 	documentCount: number;
 	statusSummary: StatusSummary;
-	tasks: DocumentTaskGroup[];
-};
-
-type DocumentTreeTask = {
-	id: string;
-	name: string;
-	documentCount: number;
-	statusSummary: StatusSummary;
+	documents: DocumentListItem[];
 };
 
 type DocumentTreePackage = {
 	id: string;
 	name: string;
 	parentPackage: DocumentRow["parentPackage"];
-	taskCount: number;
 	documentCount: number;
 	statusSummary: StatusSummary;
-	tasks: DocumentTreeTask[];
 };
 
 @Injectable()
@@ -217,7 +198,6 @@ export class DocumentsService {
 
 		return {
 			packageId: this.optionalQueryString(query.packageId, "packageId"),
-			taskId: this.optionalQueryString(query.taskId, "taskId"),
 			ownerId: this.optionalQueryString(query.ownerId, "ownerId"),
 			tag: this.optionalQueryString(query.tag, "tag"),
 			status,
@@ -285,10 +265,6 @@ export class DocumentsService {
 			data: packages,
 			meta: {
 				totalPackages: packages.length,
-				totalTasks: packages.reduce(
-					(total, documentPackage) => total + documentPackage.taskCount,
-					0,
-				),
 				totalDocuments: packages.reduce(
 					(total, documentPackage) => total + documentPackage.documentCount,
 					0,
@@ -304,10 +280,6 @@ export class DocumentsService {
 			data: packages,
 			meta: {
 				totalPackages: packages.length,
-				totalTasks: packages.reduce(
-					(total, documentPackage) => total + documentPackage.taskCount,
-					0,
-				),
 				totalDocuments: packages.reduce(
 					(total, documentPackage) => total + documentPackage.documentCount,
 					0,
@@ -318,12 +290,10 @@ export class DocumentsService {
 
 	private groupDocumentsByPackage(documents: DocumentRow[]) {
 		const packagesByProjectAndId = new Map<string, DocumentPackageGroup>();
-		const tasksByPackageAndId = new Map<string, DocumentTaskGroup>();
 
 		for (const document of documents) {
 			const projectId = document.project.id;
 			const packageId = document.package.id;
-			const taskId = document.task.id;
 			const packageKey = `${projectId}:${packageId}`;
 
 			if (!packagesByProjectAndId.has(packageKey)) {
@@ -332,39 +302,18 @@ export class DocumentsService {
 					id: packageId,
 					name: document.package.name,
 					parentPackage: document.parentPackage,
-					taskCount: 0,
 					documentCount: 0,
 					statusSummary: this.createStatusSummary(),
-					tasks: [],
+					documents: [],
 				});
 			}
 
 			const documentPackage = packagesByProjectAndId.get(packageKey);
 			if (!documentPackage) continue;
-			const taskKey = `${packageKey}:${taskId}`;
-
-			if (!tasksByPackageAndId.has(taskKey)) {
-				const task = {
-					id: taskId,
-					name: document.task.name,
-					documentCount: 0,
-					statusSummary: this.createStatusSummary(),
-					documents: [],
-				};
-
-				tasksByPackageAndId.set(taskKey, task);
-				documentPackage.taskCount += 1;
-				documentPackage.tasks.push(task);
-			}
-
-			const task = tasksByPackageAndId.get(taskKey);
-			if (!task) continue;
 
 			documentPackage.documentCount += 1;
-			task.documentCount += 1;
 			this.incrementStatus(documentPackage.statusSummary, document.status);
-			this.incrementStatus(task.statusSummary, document.status);
-			task.documents.push({
+			documentPackage.documents.push({
 				id: document.id,
 				title: document.title,
 				description: document.description,
@@ -380,42 +329,20 @@ export class DocumentsService {
 	}
 
 	private groupDocumentTreeRows(rows: DocumentTreeRow[]) {
-		const packagesById = new Map<string, DocumentTreePackage>();
-
-		for (const row of rows) {
-			if (!packagesById.has(row.package_id)) {
-				packagesById.set(row.package_id, {
-					id: row.package_id,
-					name: row.package_name,
-					parentPackage: row.parent_package_id
-						? {
-								id: row.parent_package_id,
-								name: row.parent_package_name ?? "",
-							}
-						: null,
-					taskCount: 0,
-					documentCount: 0,
-					statusSummary: this.createStatusSummary(),
-					tasks: [],
-				});
-			}
-
-			const documentPackage = packagesById.get(row.package_id);
-			if (!documentPackage) continue;
-			const task = {
-				id: row.task_id,
-				name: row.task_name,
+		return rows.map(
+			(row): DocumentTreePackage => ({
+				id: row.package_id,
+				name: row.package_name,
+				parentPackage: row.parent_package_id
+					? {
+							id: row.parent_package_id,
+							name: row.parent_package_name ?? "",
+						}
+					: null,
 				documentCount: Number(row.document_count),
 				statusSummary: this.createStatusSummaryFromRow(row),
-			};
-
-			documentPackage.taskCount += 1;
-			documentPackage.documentCount += task.documentCount;
-			this.addStatusSummary(documentPackage.statusSummary, task.statusSummary);
-			documentPackage.tasks.push(task);
-		}
-
-		return Array.from(packagesById.values());
+			}),
+		);
 	}
 
 	private createStatusSummary(): StatusSummary {
@@ -434,13 +361,6 @@ export class DocumentsService {
 			approved: Number(row.approved_count),
 			archived: Number(row.archived_count),
 		};
-	}
-
-	private addStatusSummary(target: StatusSummary, source: StatusSummary) {
-		target.draft += source.draft;
-		target.in_review += source.in_review;
-		target.approved += source.approved;
-		target.archived += source.archived;
 	}
 
 	private incrementStatus(

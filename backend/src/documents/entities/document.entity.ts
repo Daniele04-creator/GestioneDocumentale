@@ -4,12 +4,11 @@ import {
 	JoinColumn,
 	ManyToOne,
 	OneToMany,
-	OneToOne,
 	PrimaryColumn,
 } from "typeorm";
 import { DocumentTag } from "./document-tag.entity";
 import { Owner } from "./owner.entity";
-import { Task } from "./task.entity";
+import { Package } from "./package.entity";
 
 export type DocumentStatus = "draft" | "in_review" | "approved" | "archived";
 
@@ -25,8 +24,8 @@ export class Document {
 	@PrimaryColumn({ type: "varchar", length: 30 })
 	id!: string;
 
-	@Column({ name: "task_id", type: "varchar", length: 100 })
-	taskId!: string;
+	@Column({ name: "package_id", type: "varchar", length: 100 })
+	packageId!: string;
 
 	@Column({ name: "owner_id", type: "varchar", length: 100 })
 	ownerId!: string;
@@ -55,12 +54,12 @@ export class Document {
 	@Column({ name: "archived_at", type: "timestamptz", nullable: true })
 	archivedAt?: Date | null;
 
-	@OneToOne(
-		() => Task,
-		(task) => task.document,
+	@ManyToOne(
+		() => Package,
+		(documentPackage) => documentPackage.documents,
 	)
-	@JoinColumn({ name: "task_id" })
-	task!: Task;
+	@JoinColumn({ name: "package_id" })
+	package!: Package;
 
 	@ManyToOne(
 		() => Owner,

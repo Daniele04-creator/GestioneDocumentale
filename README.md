@@ -9,14 +9,13 @@ Il repository contiene il backend applicativo NestJS + TypeScript, un client Typ
 Il modulo documentale gestisce documenti collegati a un contesto progettuale:
 
 ```text
-Progetto -> Package -> Task -> Documento
+Progetto -> Package -> Documento
 ```
 
 Ogni documento e' associato a:
 
 - un progetto;
 - un package;
-- una task;
 - un owner/responsabile documentale;
 - uno o piu' tag;
 - un file locale demo usato per il download.
@@ -88,10 +87,9 @@ OpenAPI e client restano materiali di supporto: il backend applicativo mantenuto
 La home documentale usa un caricamento progressivo:
 
 1. all'apertura, il frontend chiama `GET /api/v1/projects/{projectId}/document-tree`;
-2. la UI mostra package e task con `documentCount`, `taskCount` e `statusSummary`;
+2. la UI mostra i package con `documentCount` e `statusSummary`;
 3. quando l'utente espande un package, il frontend chiama `GET /api/v1/projects/{projectId}/documents?packageId=...`;
-4. quando l'utente espande una task, il frontend chiama `GET /api/v1/projects/{projectId}/documents?taskId=...`;
-5. per filtri globali come `tag`, `status` e `search`, il frontend usa `GET /api/v1/projects/{projectId}/documents` con query params.
+4. per filtri globali come `tag`, `status` e `search`, il frontend usa `GET /api/v1/projects/{projectId}/documents` con query params.
 
 In questo modo la pagina carica subito una struttura leggera e recupera i documenti completi solo quando servono.
 
@@ -108,7 +106,6 @@ Lo schema crea le tabelle principali:
 
 - `projects`
 - `packages`
-- `tasks`
 - `owners`
 - `documents`
 - `tags`

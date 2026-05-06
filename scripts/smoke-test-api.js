@@ -16,7 +16,7 @@ function assert(condition, message) {
 
 function getDocuments(groupedResponse) {
   return (groupedResponse.data || []).flatMap((documentPackage) =>
-    (documentPackage.tasks || []).flatMap((task) => task.documents || []),
+    documentPackage.documents || [],
   );
 }
 
@@ -95,17 +95,11 @@ async function main() {
     assert(body.meta && body.meta.totalDocuments > 0, 'Expected meta.totalDocuments > 0.');
 
     const firstPackage = body.data[0];
-    assert(firstPackage.taskCount >= 1, 'Expected package taskCount.');
     assert(firstPackage.documentCount >= 1, 'Expected package documentCount.');
     assert(firstPackage.statusSummary, 'Expected package statusSummary.');
-    assert(Array.isArray(firstPackage.tasks), 'Expected package tasks array.');
-
-    const firstTask = firstPackage.tasks[0];
-    assert(firstTask.documentCount >= 1, 'Expected task documentCount.');
-    assert(firstTask.statusSummary, 'Expected task statusSummary.');
     assert(
-      !Object.prototype.hasOwnProperty.call(firstTask, 'documents'),
-      'Document tree tasks must not contain full documents array.',
+      !Object.prototype.hasOwnProperty.call(firstPackage, 'documents'),
+      'Document tree packages must not contain full documents array.',
     );
   });
 

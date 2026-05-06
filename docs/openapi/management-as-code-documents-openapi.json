@@ -26,7 +26,7 @@
     },
     "/api/v1/projects/{projectId}/documents": {
       "get": {
-        "description": "Restituisce la home documentale del progetto, con documenti raggruppati per package e task e filtrabili tramite query parameters.",
+        "description": "Restituisce la home documentale del progetto, con documenti raggruppati per package e filtrabili tramite query parameters.",
         "operationId": "ProjectDocumentsController_listProjectDocuments",
         "parameters": [
           {
@@ -65,14 +65,6 @@
             "in": "query",
             "schema": {
               "example": "owner-001"
-            }
-          },
-          {
-            "name": "taskId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "example": "task-001"
             }
           },
           {
@@ -151,7 +143,7 @@
     },
     "/api/v1/projects/{projectId}/document-tree": {
       "get": {
-        "description": "Restituisce una struttura leggera package -> task con conteggi, senza caricare i dettagli dei documenti.",
+        "description": "Restituisce una struttura leggera dei package del progetto, con conteggi e statusSummary, senza caricare i dettagli dei documenti.",
         "operationId": "ProjectDocumentsController_getProjectDocumentTree",
         "parameters": [
           {
@@ -774,23 +766,6 @@
         },
         "example": null
       },
-      "TaskRef": {
-        "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "task-001"
-          },
-          "name": {
-            "type": "string",
-            "example": "Redazione Specifica SRS"
-          }
-        }
-      },
       "FileInfo": {
         "type": "object",
         "required": [
@@ -879,7 +854,6 @@
           "project",
           "package",
           "parentPackage",
-          "task",
           "owner",
           "fileInfo",
           "version",
@@ -919,9 +893,6 @@
           },
           "parentPackage": {
             "$ref": "#/components/schemas/ParentPackageRef"
-          },
-          "task": {
-            "$ref": "#/components/schemas/TaskRef"
           },
           "owner": {
             "$ref": "#/components/schemas/DocumentOwner"
@@ -971,40 +942,6 @@
           }
         }
       },
-      "DocumentTaskGroup": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "documentCount",
-          "statusSummary",
-          "documents"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "task-001"
-          },
-          "name": {
-            "type": "string",
-            "example": "Redazione Specifica SRS"
-          },
-          "documentCount": {
-            "type": "integer",
-            "minimum": 0,
-            "example": 1
-          },
-          "statusSummary": {
-            "$ref": "#/components/schemas/DocumentStatusSummary"
-          },
-          "documents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DocumentListItem"
-            }
-          }
-        }
-      },
       "DocumentPackageGroup": {
         "type": "object",
         "required": [
@@ -1012,10 +949,9 @@
           "id",
           "name",
           "parentPackage",
-          "taskCount",
           "documentCount",
           "statusSummary",
-          "tasks"
+          "documents"
         ],
         "properties": {
           "project": {
@@ -1032,23 +968,18 @@
           "parentPackage": {
             "$ref": "#/components/schemas/ParentPackageRef"
           },
-          "taskCount": {
-            "type": "integer",
-            "minimum": 0,
-            "example": 1
-          },
           "documentCount": {
             "type": "integer",
             "minimum": 0,
-            "example": 1
+            "example": 2
           },
           "statusSummary": {
             "$ref": "#/components/schemas/DocumentStatusSummary"
           },
-          "tasks": {
+          "documents": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DocumentTaskGroup"
+              "$ref": "#/components/schemas/DocumentListItem"
             }
           }
         }
@@ -1057,7 +988,6 @@
         "type": "object",
         "required": [
           "totalPackages",
-          "totalTasks",
           "totalDocuments"
         ],
         "properties": {
@@ -1066,15 +996,10 @@
             "minimum": 0,
             "example": 1
           },
-          "totalTasks": {
-            "type": "integer",
-            "minimum": 0,
-            "example": 1
-          },
           "totalDocuments": {
             "type": "integer",
             "minimum": 0,
-            "example": 1
+            "example": 2
           }
         }
       },
@@ -1096,43 +1021,14 @@
           }
         }
       },
-      "DocumentTreeTask": {
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "documentCount",
-          "statusSummary"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "task-001"
-          },
-          "name": {
-            "type": "string",
-            "example": "Redazione Specifica SRS"
-          },
-          "documentCount": {
-            "type": "integer",
-            "minimum": 0,
-            "example": 1
-          },
-          "statusSummary": {
-            "$ref": "#/components/schemas/DocumentStatusSummary"
-          }
-        }
-      },
       "DocumentTreePackage": {
         "type": "object",
         "required": [
           "id",
           "name",
           "parentPackage",
-          "taskCount",
           "documentCount",
-          "statusSummary",
-          "tasks"
+          "statusSummary"
         ],
         "properties": {
           "id": {
@@ -1146,11 +1042,6 @@
           "parentPackage": {
             "$ref": "#/components/schemas/ParentPackageRef"
           },
-          "taskCount": {
-            "type": "integer",
-            "minimum": 0,
-            "example": 2
-          },
           "documentCount": {
             "type": "integer",
             "minimum": 0,
@@ -1158,12 +1049,6 @@
           },
           "statusSummary": {
             "$ref": "#/components/schemas/DocumentStatusSummary"
-          },
-          "tasks": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DocumentTreeTask"
-            }
           }
         }
       },
@@ -1171,7 +1056,6 @@
         "type": "object",
         "required": [
           "totalPackages",
-          "totalTasks",
           "totalDocuments"
         ],
         "properties": {
@@ -1179,11 +1063,6 @@
             "type": "integer",
             "minimum": 0,
             "example": 1
-          },
-          "totalTasks": {
-            "type": "integer",
-            "minimum": 0,
-            "example": 2
           },
           "totalDocuments": {
             "type": "integer",

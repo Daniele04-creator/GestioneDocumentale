@@ -1,1 +1,1 @@
-Demo notes for the document home view. Package/task grouping, status summaries, tags, and owner display.                     
+Demo notes for the document home view. Package grouping, status summaries, tags, and owner display.                     

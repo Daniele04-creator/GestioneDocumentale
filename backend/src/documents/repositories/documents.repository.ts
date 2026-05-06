@@ -5,7 +5,6 @@ import type { DocumentStatus } from "../entities/document.entity";
 export type DocumentFilters = {
 	projectId: string;
 	packageId?: string;
-	taskId?: string;
 	ownerId?: string;
 	tag?: string;
 	status?: DocumentStatus;
@@ -30,7 +29,6 @@ export type DocumentRow = {
 	project: { id: string; name: string };
 	package: { id: string; name: string };
 	parentPackage: { id: string; name: string } | null;
-	task: { id: string; name: string };
 	owner: { id: string; name: string };
 	fileInfo?: PublicFileInfo;
 	version: number;
@@ -45,8 +43,6 @@ export type DocumentTreeRow = {
 	package_name: string;
 	parent_package_id: string | null;
 	parent_package_name: string | null;
-	task_id: string;
-	task_name: string;
 	document_count: number;
 	draft_count: number;
 	in_review_count: number;
@@ -74,7 +70,6 @@ export class DocumentsRepository {
 		this.addPlainFilter(where, params, "d.status", filters.status);
 		this.addPlainFilter(where, params, "pr.id", filters.projectId);
 		this.addPlainFilter(where, params, "p.id", filters.packageId);
-		this.addPlainFilter(where, params, "t.id", filters.taskId);
 		this.addPlainFilter(where, params, "o.id", filters.ownerId);
 		this.addTagFilter(where, params, filters.tag);
 
@@ -143,16 +138,13 @@ export class DocumentsRepository {
 					p.name AS package_name,
 					pp.id AS parent_package_id,
 					pp.name AS parent_package_name,
-					t.id AS task_id,
-					t.name AS task_name,
 					COUNT(d.id)::int AS document_count,
 					COUNT(d.id) FILTER (WHERE d.status = 'draft')::int AS draft_count,
 					COUNT(d.id) FILTER (WHERE d.status = 'in_review')::int AS in_review_count,
 					COUNT(d.id) FILTER (WHERE d.status = 'approved')::int AS approved_count,
 					COUNT(d.id) FILTER (WHERE d.status = 'archived')::int AS archived_count
 				FROM documents d
-				JOIN tasks t ON d.task_id = t.id
-				JOIN packages p ON t.package_id = p.id
+				JOIN packages p ON d.package_id = p.id
 				JOIN projects pr ON p.project_id = pr.id
 				LEFT JOIN packages pp ON p.parent_package_id = pp.id
 				WHERE pr.id = $1
@@ -160,10 +152,8 @@ export class DocumentsRepository {
 					p.id,
 					p.name,
 					pp.id,
-					pp.name,
-					t.id,
-					t.name
-				ORDER BY p.name, t.name
+					pp.name
+				ORDER BY p.name
 			`,
 			[projectId],
 		);
@@ -209,10 +199,9 @@ export class DocumentsRepository {
 				WHERE d.id = $${documentIdParam}
 					AND EXISTS (
 						SELECT 1
-						FROM tasks t
-						JOIN packages p ON t.package_id = p.id
+						FROM packages p
 						JOIN projects pr ON p.project_id = pr.id
-						WHERE t.id = d.task_id
+						WHERE p.id = d.package_id
 							AND pr.id = $${projectIdParam}
 					)
 				RETURNING d.id
@@ -271,7 +260,6 @@ export class DocumentsRepository {
 			OR d.description ILIKE $${params.length}
 			OR pr.name ILIKE $${params.length}
 			OR p.name ILIKE $${params.length}
-			OR t.name ILIKE $${params.length}
 			OR o.name ILIKE $${params.length}
 			OR EXISTS (
 				SELECT 1
@@ -338,10 +326,6 @@ export class DocumentsRepository {
 						name: String(row.parent_package_name),
 					}
 				: null,
-			task: {
-				id: String(row.task_id),
-				name: String(row.task_name),
-			},
 			owner: {
 				id: String(row.owner_id),
 				name: String(row.owner_name),
@@ -386,17 +370,14 @@ export class DocumentsRepository {
 			p.id AS package_id,
 			p.name AS package_name,
 			pp.id AS parent_package_id,
-			pp.name AS parent_package_name,
-			t.id AS task_id,
-			t.name AS task_name
+			pp.name AS parent_package_name
 		`;
 	}
 
 	private documentFromSql() {
 		return `
 			FROM documents d
-			JOIN tasks t ON d.task_id = t.id
-			JOIN packages p ON t.package_id = p.id
+			JOIN packages p ON d.package_id = p.id
 			JOIN projects pr ON p.project_id = pr.id
 			JOIN owners o ON d.owner_id = o.id
 			LEFT JOIN packages pp ON p.parent_package_id = pp.id

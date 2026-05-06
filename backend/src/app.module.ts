@@ -8,7 +8,6 @@ import { Owner } from "./documents/entities/owner.entity";
 import { Package } from "./documents/entities/package.entity";
 import { Project } from "./documents/entities/project.entity";
 import { Tag } from "./documents/entities/tag.entity";
-import { Task } from "./documents/entities/task.entity";
 import { HealthModule } from "./health/health.module";
 
 @Module({
@@ -46,7 +45,7 @@ import { HealthModule } from "./health/health.module";
 					(config.get<string>("DATABASE_SSL") ?? "false") === "true"
 						? { rejectUnauthorized: false }
 						: false,
-				entities: [Project, Package, Task, Owner, Document, Tag, DocumentTag],
+				entities: [Project, Package, Owner, Document, Tag, DocumentTag],
 				synchronize: false,
 			}),
 		}),

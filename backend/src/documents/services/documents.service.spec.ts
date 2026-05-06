@@ -11,8 +11,6 @@ describe("DocumentsService", () => {
 					package_name: "Documentazione requisiti",
 					parent_package_id: null,
 					parent_package_name: null,
-					task_id: "task-001",
-					task_name: "Redazione Specifica SRS",
 					document_count: 1,
 					draft_count: 1,
 					in_review_count: 0,
@@ -26,8 +24,7 @@ describe("DocumentsService", () => {
 		const response = await service.getProjectDocumentTree("project-001");
 
 		expect(response.meta.totalPackages).toBe(1);
-		expect(response.meta.totalTasks).toBe(1);
 		expect(response.meta.totalDocuments).toBe(1);
-		expect(response.data[0].tasks[0]).not.toHaveProperty("documents");
+		expect(response.data[0]).not.toHaveProperty("documents");
 	});
 });

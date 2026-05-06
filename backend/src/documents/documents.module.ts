@@ -7,7 +7,6 @@ import { Owner } from "./entities/owner.entity";
 import { Package } from "./entities/package.entity";
 import { Project } from "./entities/project.entity";
 import { Tag } from "./entities/tag.entity";
-import { Task } from "./entities/task.entity";
 import { DocumentsRepository } from "./repositories/documents.repository";
 import { DocumentsService } from "./services/documents.service";
 
@@ -16,7 +15,6 @@ import { DocumentsService } from "./services/documents.service";
 		TypeOrmModule.forFeature([
 			Project,
 			Package,
-			Task,
 			Owner,
 			Document,
 			Tag,

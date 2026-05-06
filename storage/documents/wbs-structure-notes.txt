@@ -1,1 +1,1 @@
-Demo WBS structure notes for package and task organization in the document module prototype. No real project or client data.                 
+Demo WBS structure notes for package organization in the document module prototype. No real project or client data.                 

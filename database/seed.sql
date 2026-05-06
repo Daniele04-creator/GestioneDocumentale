@@ -21,32 +21,6 @@ SET
   parent_package_id = EXCLUDED.parent_package_id,
   name = EXCLUDED.name;
 
-INSERT INTO tasks (id, package_id, name)
-VALUES
-  ('task-001', 'package-001', 'Redazione Specifica SRS'),
-  ('task-002', 'package-001', 'Redazione panoramica architettura SRS'),
-  ('task-003', 'package-001', 'Analisi rischi requisiti'),
-  ('task-004', 'package-001', 'Verifica checklist integrazione requisiti'),
-  ('task-005', 'package-002', 'Redazione note struttura WBS'),
-  ('task-006', 'package-002', 'Validazione contratto API documentale'),
-  ('task-007', 'package-007', 'Redazione specifiche funzionali'),
-  ('task-008', 'package-003', 'Verbale kickoff frontend'),
-  ('task-009', 'package-003', 'Note mockup home documentale'),
-  ('task-010', 'package-003', 'Checklist integrazione UI'),
-  ('task-011', 'package-004', 'Note consumo API frontend'),
-  ('task-012', 'package-004', 'Mappatura pagine React'),
-  ('task-013', 'package-004', 'Note gestione stato frontend'),
-  ('task-014', 'package-004', 'Report validazione frontend'),
-  ('task-015', 'package-005', 'Piano validazione API documentale'),
-  ('task-016', 'package-006', 'Matrice test download'),
-  ('task-017', 'package-006', 'Checklist test Postman'),
-  ('task-018', 'package-006', 'Revisione tag documentali'),
-  ('task-019', 'package-006', 'Riepilogo validazione finale')
-ON CONFLICT (id) DO UPDATE
-SET
-  package_id = EXCLUDED.package_id,
-  name = EXCLUDED.name;
-
 INSERT INTO owners (id, name)
 VALUES
   ('owner-001', 'Francesca R'),
@@ -78,7 +52,7 @@ ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO documents (
   id,
-  task_id,
+  package_id,
   owner_id,
   title,
   description,
@@ -92,7 +66,7 @@ INSERT INTO documents (
 VALUES
 (
   'DOC-001',
-  'task-001',
+  'package-001',
   'owner-001',
   'Specifica SRS',
   'Documento dei requisiti software per il prototipo documentale',
@@ -105,7 +79,7 @@ VALUES
 ),
 (
   'DOC-002',
-  'task-002',
+  'package-001',
   'owner-001',
   'SRS architecture overview',
   'Architecture overview used while preparing the SRS package',
@@ -118,7 +92,7 @@ VALUES
 ),
 (
   'DOC-003',
-  'task-003',
+  'package-001',
   'owner-002',
   'Risk register',
   'Risk register for the Management as Code demo',
@@ -131,7 +105,7 @@ VALUES
 ),
 (
   'DOC-004',
-  'task-004',
+  'package-001',
   'owner-003',
   'Integration checklist',
   'Archived checklist for early integration checks',
@@ -144,7 +118,7 @@ VALUES
 ),
 (
   'DOC-005',
-  'task-005',
+  'package-002',
   'owner-002',
   'WBS structure notes',
   'Notes about package level work breakdown',
@@ -157,10 +131,10 @@ VALUES
 ),
 (
   'DOC-006',
-  'task-006',
+  'package-002',
   'owner-004',
   'Document API contract',
-  'API contract for package and task based document browsing',
+  'API contract for package based document browsing',
   'approved',
   '{"fileName":"document-api-contract.txt","mimeType":"text/plain","sizeBytes":123,"storagePath":"storage/documents/document-api-contract.txt"}'::jsonb,
   1,
@@ -170,7 +144,7 @@ VALUES
 ),
 (
   'DOC-007',
-  'task-007',
+  'package-007',
   'owner-001',
   'Functional requirements draft',
   'Draft document with functional requirements and architecture notes',
@@ -183,7 +157,7 @@ VALUES
 ),
 (
   'DOC-008',
-  'task-008',
+  'package-003',
   'owner-003',
   'Kickoff meeting minutes',
   'Minutes from the frontend migration kickoff meeting',
@@ -196,10 +170,10 @@ VALUES
 ),
 (
   'DOC-009',
-  'task-009',
+  'package-003',
   'owner-004',
   'Document home mockup notes',
-  'Notes for the first document home mockup and task navigation',
+  'Notes for the first document home mockup and package navigation',
   'draft',
   '{"fileName":"document-home-notes.txt","mimeType":"text/plain","sizeBytes":125,"storagePath":"storage/documents/document-home-notes.txt"}'::jsonb,
   1,
@@ -209,7 +183,7 @@ VALUES
 ),
 (
   'DOC-010',
-  'task-010',
+  'package-003',
   'owner-005',
   'UI integration checklist',
   'Checklist for connecting the UI mockup to the backend',
@@ -222,7 +196,7 @@ VALUES
 ),
 (
   'DOC-011',
-  'task-011',
+  'package-004',
   'owner-002',
   'API consumption notes',
   'Notes for consuming the grouped document API from a frontend client',
@@ -235,7 +209,7 @@ VALUES
 ),
 (
   'DOC-012',
-  'task-012',
+  'package-004',
   'owner-004',
   'React page mapping',
   'Draft mapping between possible React pages and backend calls',
@@ -248,10 +222,10 @@ VALUES
 ),
 (
   'DOC-013',
-  'task-013',
+  'package-004',
   'owner-003',
   'State management notes',
-  'Notes about frontend state for filters and selected tasks',
+  'Notes about frontend state for filters and selected packages',
   'in_review',
   '{"fileName":"state-management-notes.txt","mimeType":"text/plain","sizeBytes":127,"storagePath":"storage/documents/state-management-notes.txt"}'::jsonb,
   1,
@@ -261,7 +235,7 @@ VALUES
 ),
 (
   'DOC-014',
-  'task-014',
+  'package-004',
   'owner-005',
   'Frontend validation report',
   'Archived validation report for the frontend migration demo',
@@ -274,7 +248,7 @@ VALUES
 ),
 (
   'DOC-015',
-  'task-015',
+  'package-005',
   'owner-001',
   'Document validation plan',
   'Plan for validating filters, grouping, summaries, and file downloads',
@@ -287,10 +261,10 @@ VALUES
 ),
 (
   'DOC-016',
-  'task-016',
+  'package-006',
   'owner-002',
   'Download test matrix',
-  'Matrix for checking file downloads across projects and tasks',
+  'Matrix for checking file downloads across projects and packages',
   'in_review',
   '{"fileName":"download-test-matrix.txt","mimeType":"text/plain","sizeBytes":109,"storagePath":"storage/documents/download-test-matrix.txt"}'::jsonb,
   1,
@@ -300,7 +274,7 @@ VALUES
 ),
 (
   'DOC-017',
-  'task-017',
+  'package-006',
   'owner-004',
   'Postman test checklist',
   'Checklist for validating Postman requests against the document API',
@@ -313,7 +287,7 @@ VALUES
 ),
 (
   'DOC-018',
-  'task-018',
+  'package-006',
   'owner-005',
   'Tag review',
   'Review of document tags used for classification and search',
@@ -326,7 +300,7 @@ VALUES
 ),
 (
   'DOC-019',
-  'task-019',
+  'package-006',
   'owner-005',
   'Final validation summary',
   'Archived summary of document module validation results',
@@ -339,7 +313,7 @@ VALUES
 )
 ON CONFLICT (id) DO UPDATE
 SET
-  task_id = EXCLUDED.task_id,
+  package_id = EXCLUDED.package_id,
   owner_id = EXCLUDED.owner_id,
   title = EXCLUDED.title,
   description = EXCLUDED.description,

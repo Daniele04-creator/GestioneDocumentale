@@ -92,7 +92,7 @@ async function main() {
 
 function getDocuments(response: any) {
   return response.data.flatMap((documentPackage: any) =>
-    documentPackage.tasks.flatMap((task: any) => task.documents),
+    documentPackage.documents || [],
   );
 }
 
@@ -131,7 +131,6 @@ async function expectInvalidQueryParam() {
   try {
     await documentsApi.projectDocumentsControllerListProjectDocuments(
       projectId,
-      undefined,
       undefined,
       undefined,
       undefined,

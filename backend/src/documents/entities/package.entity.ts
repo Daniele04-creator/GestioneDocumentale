@@ -7,8 +7,8 @@ import {
 	OneToMany,
 	PrimaryColumn,
 } from "typeorm";
+import { Document } from "./document.entity";
 import { Project } from "./project.entity";
-import { Task } from "./task.entity";
 
 @Entity("packages")
 export class Package {
@@ -54,8 +54,8 @@ export class Package {
 	children!: Package[];
 
 	@OneToMany(
-		() => Task,
-		(task) => task.package,
+		() => Document,
+		(document) => document.package,
 	)
-	tasks!: Task[];
+	documents!: Document[];
 }

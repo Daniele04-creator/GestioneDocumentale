@@ -146,12 +146,6 @@ export interface DocumentDetail {
     parentPackage: ParentPackageRef;
     /**
      * 
-     * @type {TaskRef}
-     * @memberof DocumentDetail
-     */
-    task: TaskRef;
-    /**
-     * 
      * @type {DocumentOwner}
      * @memberof DocumentDetail
      */
@@ -235,12 +229,6 @@ export interface DocumentHomeMeta {
      * @memberof DocumentHomeMeta
      */
     totalPackages: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof DocumentHomeMeta
-     */
-    totalTasks: number;
     /**
      * 
      * @type {number}
@@ -393,12 +381,6 @@ export interface DocumentPackageGroup {
      * @type {number}
      * @memberof DocumentPackageGroup
      */
-    taskCount: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof DocumentPackageGroup
-     */
     documentCount: number;
     /**
      * 
@@ -408,10 +390,10 @@ export interface DocumentPackageGroup {
     statusSummary: DocumentStatusSummary;
     /**
      * 
-     * @type {Array<DocumentTaskGroup>}
+     * @type {Array<DocumentListItem>}
      * @memberof DocumentPackageGroup
      */
-    tasks: Array<DocumentTaskGroup>;
+    documents: Array<DocumentListItem>;
 }
 /**
  * 
@@ -460,43 +442,6 @@ export interface DocumentTag {
 /**
  * 
  * @export
- * @interface DocumentTaskGroup
- */
-export interface DocumentTaskGroup {
-    /**
-     * 
-     * @type {string}
-     * @memberof DocumentTaskGroup
-     */
-    id: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof DocumentTaskGroup
-     */
-    name: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof DocumentTaskGroup
-     */
-    documentCount: number;
-    /**
-     * 
-     * @type {DocumentStatusSummary}
-     * @memberof DocumentTaskGroup
-     */
-    statusSummary: DocumentStatusSummary;
-    /**
-     * 
-     * @type {Array<DocumentListItem>}
-     * @memberof DocumentTaskGroup
-     */
-    documents: Array<DocumentListItem>;
-}
-/**
- * 
- * @export
  * @interface DocumentTreeMeta
  */
 export interface DocumentTreeMeta {
@@ -506,12 +451,6 @@ export interface DocumentTreeMeta {
      * @memberof DocumentTreeMeta
      */
     totalPackages: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof DocumentTreeMeta
-     */
-    totalTasks: number;
     /**
      * 
      * @type {number}
@@ -548,12 +487,6 @@ export interface DocumentTreePackage {
      * @type {number}
      * @memberof DocumentTreePackage
      */
-    taskCount: number;
-    /**
-     * 
-     * @type {number}
-     * @memberof DocumentTreePackage
-     */
     documentCount: number;
     /**
      * 
@@ -561,12 +494,6 @@ export interface DocumentTreePackage {
      * @memberof DocumentTreePackage
      */
     statusSummary: DocumentStatusSummary;
-    /**
-     * 
-     * @type {Array<DocumentTreeTask>}
-     * @memberof DocumentTreePackage
-     */
-    tasks: Array<DocumentTreeTask>;
 }
 /**
  * 
@@ -586,37 +513,6 @@ export interface DocumentTreeResponse {
      * @memberof DocumentTreeResponse
      */
     meta: DocumentTreeMeta;
-}
-/**
- * 
- * @export
- * @interface DocumentTreeTask
- */
-export interface DocumentTreeTask {
-    /**
-     * 
-     * @type {string}
-     * @memberof DocumentTreeTask
-     */
-    id: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof DocumentTreeTask
-     */
-    name: string;
-    /**
-     * 
-     * @type {number}
-     * @memberof DocumentTreeTask
-     */
-    documentCount: number;
-    /**
-     * 
-     * @type {DocumentStatusSummary}
-     * @memberof DocumentTreeTask
-     */
-    statusSummary: DocumentStatusSummary;
 }
 /**
  * 
@@ -716,25 +612,6 @@ export interface ProjectRef {
      * 
      * @type {string}
      * @memberof ProjectRef
-     */
-    name: string;
-}
-/**
- * 
- * @export
- * @interface TaskRef
- */
-export interface TaskRef {
-    /**
-     * 
-     * @type {string}
-     * @memberof TaskRef
-     */
-    id: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof TaskRef
      */
     name: string;
 }
@@ -987,7 +864,7 @@ export const ProjectDocumentsApiFetchParamCreator = function (configuration?: Co
             };
         },
         /**
-         * Restituisce una struttura leggera package -> task con conteggi, senza caricare i dettagli dei documenti.
+         * Restituisce una struttura leggera package con conteggi, senza caricare i dettagli dei documenti.
          * @summary Get project document tree
          * @param {any} projectId ID del progetto
          * @param {*} [options] Override http request option.
@@ -1016,19 +893,18 @@ export const ProjectDocumentsApiFetchParamCreator = function (configuration?: Co
             };
         },
         /**
-         * Restituisce la home documentale del progetto, con documenti raggruppati per package e task e filtrabili tramite query parameters.
+         * Restituisce la home documentale del progetto, con documenti raggruppati per package e filtrabili tramite query parameters.
          * @summary List project documents
          * @param {any} projectId ID del progetto
          * @param {any} [search] 
          * @param {string} [status] 
          * @param {any} [tag] 
          * @param {any} [ownerId] 
-         * @param {any} [taskId] 
          * @param {any} [packageId] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, taskId?: any, packageId?: any, options: any = {}): FetchArgs {
+        projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, packageId?: any, options: any = {}): FetchArgs {
             // verify required parameter 'projectId' is not null or undefined
             if (projectId === null || projectId === undefined) {
                 throw new RequiredError('projectId','Required parameter projectId was null or undefined when calling projectDocumentsControllerListProjectDocuments.');
@@ -1055,11 +931,6 @@ export const ProjectDocumentsApiFetchParamCreator = function (configuration?: Co
             if (ownerId !== undefined) {
                 localVarQueryParameter['ownerId'] = ownerId;
             }
-
-            if (taskId !== undefined) {
-                localVarQueryParameter['taskId'] = taskId;
-            }
-
             if (packageId !== undefined) {
                 localVarQueryParameter['packageId'] = packageId;
             }
@@ -1188,7 +1059,7 @@ export const ProjectDocumentsApiFp = function(configuration?: Configuration) {
             };
         },
         /**
-         * Restituisce una struttura leggera package -> task con conteggi, senza caricare i dettagli dei documenti.
+         * Restituisce una struttura leggera package con conteggi, senza caricare i dettagli dei documenti.
          * @summary Get project document tree
          * @param {any} projectId ID del progetto
          * @param {*} [options] Override http request option.
@@ -1207,20 +1078,19 @@ export const ProjectDocumentsApiFp = function(configuration?: Configuration) {
             };
         },
         /**
-         * Restituisce la home documentale del progetto, con documenti raggruppati per package e task e filtrabili tramite query parameters.
+         * Restituisce la home documentale del progetto, con documenti raggruppati per package e filtrabili tramite query parameters.
          * @summary List project documents
          * @param {any} projectId ID del progetto
          * @param {any} [search] 
          * @param {string} [status] 
          * @param {any} [tag] 
          * @param {any} [ownerId] 
-         * @param {any} [taskId] 
          * @param {any} [packageId] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, taskId?: any, packageId?: any, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<DocumentHomeResponse> {
-            const localVarFetchArgs = ProjectDocumentsApiFetchParamCreator(configuration).projectDocumentsControllerListProjectDocuments(projectId, search, status, tag, ownerId, taskId, packageId, options);
+        projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, packageId?: any, options?: any): (fetch?: FetchAPI, basePath?: string) => Promise<DocumentHomeResponse> {
+            const localVarFetchArgs = ProjectDocumentsApiFetchParamCreator(configuration).projectDocumentsControllerListProjectDocuments(projectId, search, status, tag, ownerId, packageId, options);
             return (fetch: FetchAPI = isomorphicFetch, basePath: string = BASE_PATH) => {
                 return fetch(basePath + localVarFetchArgs.url, localVarFetchArgs.options).then((response) => {
                     if (response.status >= 200 && response.status < 300) {
@@ -1295,7 +1165,7 @@ export const ProjectDocumentsApiFactory = function (configuration?: Configuratio
             return ProjectDocumentsApiFp(configuration).projectDocumentsControllerGetProjectDocumentById(documentId, projectId, options)(fetch, basePath);
         },
         /**
-         * Restituisce una struttura leggera package -> task con conteggi, senza caricare i dettagli dei documenti.
+         * Restituisce una struttura leggera package con conteggi, senza caricare i dettagli dei documenti.
          * @summary Get project document tree
          * @param {any} projectId ID del progetto
          * @param {*} [options] Override http request option.
@@ -1305,20 +1175,19 @@ export const ProjectDocumentsApiFactory = function (configuration?: Configuratio
             return ProjectDocumentsApiFp(configuration).projectDocumentsControllerGetProjectDocumentTree(projectId, options)(fetch, basePath);
         },
         /**
-         * Restituisce la home documentale del progetto, con documenti raggruppati per package e task e filtrabili tramite query parameters.
+         * Restituisce la home documentale del progetto, con documenti raggruppati per package e filtrabili tramite query parameters.
          * @summary List project documents
          * @param {any} projectId ID del progetto
          * @param {any} [search] 
          * @param {string} [status] 
          * @param {any} [tag] 
          * @param {any} [ownerId] 
-         * @param {any} [taskId] 
          * @param {any} [packageId] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, taskId?: any, packageId?: any, options?: any) {
-            return ProjectDocumentsApiFp(configuration).projectDocumentsControllerListProjectDocuments(projectId, search, status, tag, ownerId, taskId, packageId, options)(fetch, basePath);
+        projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, packageId?: any, options?: any) {
+            return ProjectDocumentsApiFp(configuration).projectDocumentsControllerListProjectDocuments(projectId, search, status, tag, ownerId, packageId, options)(fetch, basePath);
         },
         /**
          * Aggiorna i campi modificabili di un documento non archiviato.
@@ -1382,7 +1251,7 @@ export class ProjectDocumentsApi extends BaseAPI {
     }
 
     /**
-     * Restituisce una struttura leggera package -> task con conteggi, senza caricare i dettagli dei documenti.
+     * Restituisce una struttura leggera package con conteggi, senza caricare i dettagli dei documenti.
      * @summary Get project document tree
      * @param {any} projectId ID del progetto
      * @param {*} [options] Override http request option.
@@ -1394,21 +1263,20 @@ export class ProjectDocumentsApi extends BaseAPI {
     }
 
     /**
-     * Restituisce la home documentale del progetto, con documenti raggruppati per package e task e filtrabili tramite query parameters.
+     * Restituisce la home documentale del progetto, con documenti raggruppati per package e filtrabili tramite query parameters.
      * @summary List project documents
      * @param {any} projectId ID del progetto
      * @param {any} [search] 
      * @param {string} [status] 
      * @param {any} [tag] 
      * @param {any} [ownerId] 
-     * @param {any} [taskId] 
      * @param {any} [packageId] 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof ProjectDocumentsApi
      */
-    public projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, taskId?: any, packageId?: any, options?: any) {
-        return ProjectDocumentsApiFp(this.configuration).projectDocumentsControllerListProjectDocuments(projectId, search, status, tag, ownerId, taskId, packageId, options)(this.fetch, this.basePath);
+    public projectDocumentsControllerListProjectDocuments(projectId: any, search?: any, status?: string, tag?: any, ownerId?: any, packageId?: any, options?: any) {
+        return ProjectDocumentsApiFp(this.configuration).projectDocumentsControllerListProjectDocuments(projectId, search, status, tag, ownerId, packageId, options)(this.fetch, this.basePath);
     }
 
     /**

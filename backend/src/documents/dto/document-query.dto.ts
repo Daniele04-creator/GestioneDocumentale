@@ -15,10 +15,6 @@ export class DocumentQueryDto {
 
 	@IsOptional()
 	@IsString()
-	taskId?: string;
-
-	@IsOptional()
-	@IsString()
 	ownerId?: string;
 
 	@IsOptional()
