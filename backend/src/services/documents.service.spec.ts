@@ -30,4 +30,82 @@ describe("DocumentsService", () => {
 		expect(response.meta.totalDocuments).toBe(1);
 		expect(response.data[0]).not.toHaveProperty("documents");
 	});
+
+	it("registers metadata for an existing document file", async () => {
+		const createdDocument = {
+			id: "DOC-020",
+			title: "Report avanzamento",
+			description: "Documento prodotto da una funzione esterna",
+			status: "draft",
+			keyType: "project",
+			key: { id: "PRJ-001", name: "Management as Code Demo" },
+			subKey: {
+				id: "PKG-001",
+				name: "Documentazione requisiti",
+				parentSubKey: null,
+			},
+			owner: { id: "owner-001", name: "Francesca R" },
+			fileInfo: {
+				fileName: "report-avanzamento.txt",
+				mimeType: "text/plain",
+				sizeBytes: 210,
+			},
+			version: 1,
+			createdAt: new Date().toISOString(),
+			updatedAt: null,
+			archivedAt: null,
+			tags: [{ name: "Report" }],
+		};
+		const repository = {
+			keyExists: jest.fn().mockResolvedValue(true),
+			subKeyExists: jest.fn().mockResolvedValue(true),
+			ownerExists: jest.fn().mockResolvedValue(true),
+			createForKey: jest.fn().mockResolvedValue(createdDocument),
+		} as unknown as DocumentsRepository;
+
+		const service = new DocumentsService(repository);
+		const serviceWithPrivateMethods = service as unknown as {
+			storeUploadedDocumentFile: jest.Mock;
+		};
+		jest
+			.spyOn(serviceWithPrivateMethods, "storeUploadedDocumentFile")
+			.mockResolvedValue({
+				absolutePath: "storage/documents/uploaded-report-avanzamento.txt",
+				fileInfo: {
+					fileName: "uploaded-report-avanzamento.txt",
+					mimeType: "text/plain",
+					sizeBytes: 210,
+					storagePath: "storage/documents/uploaded-report-avanzamento.txt",
+				},
+			});
+
+		const response = await service.createDocument(
+			"project",
+			"PRJ-001",
+			{
+				subKey: "PKG-001",
+				title: "Report avanzamento",
+				description: "Documento prodotto da una funzione esterna",
+				ownerId: "owner-001",
+				tags: ["Report"],
+			},
+			{
+				originalname: "report-avanzamento.txt",
+				mimetype: "text/plain",
+				size: 210,
+				buffer: Buffer.from("demo"),
+			},
+		);
+
+		expect(response.id).toBe("DOC-020");
+		expect(repository.createForKey).toHaveBeenCalledWith(
+			"project",
+			"PRJ-001",
+			expect.objectContaining({
+				subKey: "PKG-001",
+				status: "draft",
+				tags: ["Report"],
+			}),
+		);
+	});
 });

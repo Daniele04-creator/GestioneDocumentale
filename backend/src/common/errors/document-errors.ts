@@ -37,10 +37,31 @@ export function keyNotFound() {
 	});
 }
 
+export function subKeyNotFound() {
+	return new NotFoundException({
+		code: "SUB_KEY_NOT_FOUND",
+		message: "Document sub key not found.",
+	});
+}
+
+export function ownerNotFound() {
+	return new NotFoundException({
+		code: "OWNER_NOT_FOUND",
+		message: "Document owner not found.",
+	});
+}
+
 export function documentNotFound() {
 	return new NotFoundException({
 		code: "DOCUMENT_NOT_FOUND",
 		message: "Document not found.",
+	});
+}
+
+export function invalidDocumentFile(message = "Invalid document file.") {
+	return new BadRequestException({
+		code: "INVALID_DOCUMENT_FILE",
+		message,
 	});
 }
 

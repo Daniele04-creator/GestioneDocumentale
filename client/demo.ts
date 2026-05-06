@@ -1,4 +1,7 @@
+import { readFile, unlink } from 'node:fs/promises';
+import { join } from 'node:path';
 import {
+  CreateDocumentRequest,
   DocumentKeysApi,
   Configuration,
   HealthApi,
@@ -9,6 +12,7 @@ const basePath = process.env.API_BASE_URL || 'http://localhost:3000';
 const keyType = 'project';
 const key = 'PRJ-001';
 const documentId = 'DOC-001';
+const subKey = 'PKG-001';
 
 const configuration = new Configuration({ basePath });
 const fetchApi = ((requestUrl: string, init?: any) =>
@@ -74,6 +78,26 @@ async function main() {
 
   await expectInvalidQueryParam();
 
+  const demoFileBuffer = await readFile(
+    join(process.cwd(), '..', 'storage', 'documents', 'report-avanzamento.txt'),
+  );
+  const created = await documentsApi.documentKeysControllerCreateDocument(
+    {
+      file: new Blob([demoFileBuffer], { type: 'text/plain' }),
+      fileName: '../report-avanzamento.txt',
+      subKey,
+      title: 'Report avanzamento client demo',
+      description: 'Documento demo registrato dal client TypeScript Fetch',
+      ownerId: 'owner-001',
+      status: CreateDocumentRequest.StatusEnum.Draft,
+      tags: ['Report', 'Progress'],
+    },
+    keyType,
+    key,
+  );
+  assertSafeGeneratedFileName(created.data.fileInfo.fileName);
+  console.log('created document:', created.data.id, created.data.title);
+
   const detail = await documentsApi.documentKeysControllerGetDocumentById(
     documentId,
     keyType,
@@ -97,6 +121,7 @@ async function main() {
   console.log('archived status:', archived.data.status);
 
   await expectArchivedConflict();
+  await removeUploadedDemoFile(created.data.fileInfo.fileName);
 }
 
 function getDocuments(response: any) {
@@ -134,6 +159,24 @@ function assertHasDocuments(response: any, label: string) {
   if (response.meta.totalDocuments <= 0 || getDocuments(response).length <= 0) {
     throw new Error(`Expected at least one document for ${label}.`);
   }
+}
+
+function assertSafeGeneratedFileName(fileName: string) {
+  if (
+    fileName.includes('..') ||
+    fileName.includes('/') ||
+    fileName.includes('\\') ||
+    !fileName.startsWith('uploaded-')
+  ) {
+    throw new Error(`Generated file name is not safe: ${fileName}.`);
+  }
+}
+
+async function removeUploadedDemoFile(fileName: string) {
+  if (!fileName.startsWith('uploaded-')) return;
+  await unlink(join(process.cwd(), '..', 'storage', 'documents', fileName)).catch(
+    () => undefined,
+  );
 }
 
 async function expectInvalidQueryParam() {

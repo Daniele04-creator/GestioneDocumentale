@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Injectable } from "@nestjs/common";
@@ -5,16 +6,24 @@ import {
 	documentArchived,
 	documentFileNotFound,
 	documentNotFound,
+	invalidDocumentFile,
 	invalidDocumentId,
 	invalidDocumentPatch,
 	invalidQueryParam,
 	keyNotFound,
+	ownerNotFound,
+	subKeyNotFound,
 } from "../common/errors/document-errors";
 import { PROJECT_ROOT, STORAGE_ROOT } from "../common/utils/paths";
+import {
+	CREATE_DOCUMENT_STATUS_VALUES,
+	type CreateDocumentDto,
+} from "../dto/create-document.dto";
 import { DOCUMENT_STATUS_VALUES } from "../dto/document-query.dto";
 import type { UpdateDocumentDto } from "../dto/update-document.dto";
 import type { DocumentStatus } from "../entities/document.entity";
 import {
+	type CreateDocumentInput,
 	type DocumentRow,
 	DocumentsRepository,
 	type DocumentTreeRow,
@@ -51,6 +60,23 @@ type DocumentTreeSubKey = {
 	statusSummary: StatusSummary;
 };
 
+type UploadedDocumentFile = {
+	originalname?: string;
+	mimetype?: string;
+	size?: number;
+	buffer?: Buffer;
+};
+
+type StoredDocumentFile = {
+	absolutePath: string;
+	fileInfo: {
+		fileName: string;
+		mimeType: string;
+		sizeBytes: number;
+		storagePath: string;
+	};
+};
+
 @Injectable()
 export class DocumentsService {
 	constructor(private readonly documentsRepository: DocumentsRepository) {}
@@ -84,6 +110,51 @@ export class DocumentsService {
 			validKey,
 		);
 		return this.buildDocumentTreeResponse(rows);
+	}
+
+	async createDocument(
+		keyType: string,
+		key: string,
+		body: CreateDocumentDto,
+		file?: UploadedDocumentFile,
+	) {
+		const validKeyType = this.validateKeyType(keyType);
+		const validKey = this.validateKey(key);
+		const payload = this.normalizeCreatePayload(body);
+		await this.ensureKeyExists(validKeyType, validKey);
+
+		const subKeyExists = await this.documentsRepository.subKeyExists(
+			validKeyType,
+			validKey,
+			payload.subKey,
+		);
+		if (!subKeyExists) throw subKeyNotFound();
+
+		const ownerExists = await this.documentsRepository.ownerExists(
+			payload.ownerId,
+		);
+		if (!ownerExists) throw ownerNotFound();
+
+		const storedFile = await this.storeUploadedDocumentFile(file);
+
+		let createdDocument: DocumentRow | undefined;
+		try {
+			createdDocument = await this.documentsRepository.createForKey(
+				validKeyType,
+				validKey,
+				{
+					...payload,
+					fileInfo: storedFile.fileInfo,
+				},
+			);
+		} catch (error) {
+			await fs.unlink(storedFile.absolutePath).catch(() => undefined);
+			throw error;
+		}
+
+		if (!createdDocument) throw documentNotFound();
+
+		return createdDocument;
 	}
 
 	async getDocumentById(keyType: string, key: string, documentId: string) {
@@ -275,6 +346,108 @@ export class DocumentsService {
 		return payload;
 	}
 
+	private normalizeCreatePayload(
+		body: CreateDocumentDto,
+	): Omit<CreateDocumentInput, "fileInfo"> {
+		const subKey = body.subKey.trim();
+		const title = body.title.trim();
+		const ownerId = body.ownerId.trim();
+		const status = body.status ?? "draft";
+
+		if (subKey === "") throw invalidDocumentPatch("subKey is required");
+		if (title === "") throw invalidDocumentPatch("title is required");
+		if (ownerId === "") throw invalidDocumentPatch("ownerId is required");
+
+		if (!CREATE_DOCUMENT_STATUS_VALUES.includes(status)) {
+			throw invalidDocumentPatch("status is not valid for document creation");
+		}
+
+		const tags = Array.from(
+			new Set(
+				(body.tags ?? [])
+					.map((tag) => tag.trim())
+					.filter((tag) => tag.length > 0),
+			),
+		);
+
+		return {
+			subKey,
+			title,
+			description: body.description,
+			ownerId,
+			status,
+			tags,
+			createdAt: new Date().toISOString(),
+		};
+	}
+
+	private async storeUploadedDocumentFile(
+		file?: UploadedDocumentFile,
+	): Promise<StoredDocumentFile> {
+		if (!file?.buffer || file.size === undefined) {
+			throw invalidDocumentFile("Document file is required.");
+		}
+
+		const fileName = await this.safeStoredFileName(file.originalname);
+		const storagePath = `storage/documents/${fileName}`;
+		const absolutePath = this.resolveStoragePath(storagePath, true);
+
+		await fs.mkdir(STORAGE_ROOT, { recursive: true });
+		await fs
+			.writeFile(absolutePath, file.buffer, { flag: "wx" })
+			.catch((error) => {
+				if (error?.code === "EEXIST") {
+					throw invalidDocumentFile(
+						"Generated document file name already exists.",
+					);
+				}
+				throw error;
+			});
+
+		return {
+			absolutePath,
+			fileInfo: {
+				fileName,
+				mimeType: file.mimetype || "application/octet-stream",
+				sizeBytes: file.size,
+				storagePath,
+			},
+		};
+	}
+
+	private async safeStoredFileName(originalName?: string) {
+		const safeOriginalName = this.safeOriginalFileName(originalName);
+
+		for (let attempt = 0; attempt < 5; attempt += 1) {
+			const fileName = `uploaded-${Date.now()}-${randomUUID()}-${safeOriginalName}`;
+			const absolutePath = this.resolveStoragePath(
+				`storage/documents/${fileName}`,
+				true,
+			);
+
+			if (!(await this.isExistingFile(absolutePath))) return fileName;
+		}
+
+		throw invalidDocumentFile("Unable to generate a safe document file name.");
+	}
+
+	private safeOriginalFileName(originalName?: string) {
+		const fallbackName = "document";
+		const parsedName = path.parse(originalName || fallbackName);
+		const baseName = (parsedName.name || fallbackName)
+			.normalize("NFKD")
+			.replace(/[^a-zA-Z0-9._-]/g, "-")
+			.replace(/-+/g, "-")
+			.replace(/^-|-$/g, "")
+			.slice(0, 80);
+		const extension = parsedName.ext
+			.toLowerCase()
+			.replace(/[^a-z0-9.]/g, "")
+			.slice(0, 20);
+
+		return `${baseName || fallbackName}${extension}`;
+	}
+
 	private buildGroupedDocumentsResponse(documents: DocumentRow[]) {
 		const subKeys = this.groupDocumentsBySubKey(documents);
 
@@ -391,7 +564,7 @@ export class DocumentsService {
 		statusSummary[status] += 1;
 	}
 
-	private resolveStoragePath(storagePath: string) {
+	private resolveStoragePath(storagePath: string, useFileError = false) {
 		const absolutePath = path.resolve(PROJECT_ROOT, storagePath);
 		const relativePath = path.relative(STORAGE_ROOT, absolutePath);
 		const isInsideStorageRoot =
@@ -399,6 +572,12 @@ export class DocumentsService {
 			(!relativePath.startsWith("..") && !path.isAbsolute(relativePath));
 
 		if (!isInsideStorageRoot) {
+			if (useFileError) {
+				throw invalidDocumentFile(
+					"fileInfo.storagePath must be inside storage/documents",
+				);
+			}
+
 			throw invalidDocumentPatch(
 				"fileInfo.storagePath must be inside storage/documents",
 			);

@@ -163,6 +163,25 @@ export interface DocumentTreeResponse {
     meta: DocumentTreeMeta;
 }
 
+export interface CreateDocumentRequest {
+    file: Blob;
+    fileName?: string;
+    subKey: string;
+    title: string;
+    description?: string | null;
+    ownerId: string;
+    status?: CreateDocumentRequest.StatusEnum;
+    tags?: Array<string>;
+}
+
+export namespace CreateDocumentRequest {
+    export enum StatusEnum {
+        Draft = <any> 'draft',
+        InReview = <any> 'in_review',
+        Approved = <any> 'approved'
+    }
+}
+
 export interface UpdateDocumentRequest {
     title?: string;
     description?: string;
@@ -217,6 +236,22 @@ export class DocumentKeysApi extends BaseAPI {
         return this.request<DocumentHomeResponse>(
             `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents${suffix}`,
             Object.assign({ method: "GET" }, options),
+        );
+    }
+
+    public documentKeysControllerCreateDocument(body: CreateDocumentRequest, keyType: string, key: string, options?: any): Promise<DocumentDetailResponse> {
+        const formData = new FormData();
+        formData.append("file", body.file, body.fileName || "document");
+        formData.append("subKey", body.subKey);
+        formData.append("title", body.title);
+        formData.append("ownerId", body.ownerId);
+        if (body.description !== undefined && body.description !== null) formData.append("description", body.description);
+        if (body.status !== undefined) formData.append("status", String(body.status));
+        for (const tag of body.tags || []) formData.append("tags", tag);
+
+        return this.request<DocumentDetailResponse>(
+            `/api/v1/document-keys/${encodeURIComponent(keyType)}/${encodeURIComponent(key)}/documents`,
+            Object.assign({ method: "POST", body: formData }, options),
         );
     }
 

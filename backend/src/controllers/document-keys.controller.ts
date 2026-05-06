@@ -6,15 +6,27 @@ import {
 	Get,
 	Param,
 	Patch,
+	Post,
 	Query,
 	Res,
 	StreamableFile,
+	UploadedFile,
+	UseInterceptors,
 	ValidationPipe,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import { invalidDocumentPatch } from "../common/errors/document-errors";
+import { CreateDocumentDto } from "../dto/create-document.dto";
 import { UpdateDocumentDto } from "../dto/update-document.dto";
 import { DocumentsService } from "../services/documents.service";
+
+const createValidationPipe = new ValidationPipe({
+	transform: true,
+	whitelist: true,
+	forbidNonWhitelisted: true,
+	exceptionFactory: () => invalidDocumentPatch(),
+});
 
 const patchValidationPipe = new ValidationPipe({
 	transform: true,
@@ -22,6 +34,15 @@ const patchValidationPipe = new ValidationPipe({
 	forbidNonWhitelisted: true,
 	exceptionFactory: () => invalidDocumentPatch(),
 });
+
+const maxDocumentUploadSizeBytes = 10 * 1024 * 1024;
+
+type UploadedDocumentFile = {
+	originalname?: string;
+	mimetype?: string;
+	size?: number;
+	buffer?: Buffer;
+};
 
 @Controller("api/v1/document-keys/:keyType/:key")
 export class DocumentKeysController {
@@ -42,6 +63,30 @@ export class DocumentKeysController {
 		@Query() query: Record<string, unknown>,
 	) {
 		return this.documentsService.getDocuments(keyType, key, query);
+	}
+
+	@Post("documents")
+	@UseInterceptors(
+		FileInterceptor("file", {
+			limits: {
+				fileSize: maxDocumentUploadSizeBytes,
+				files: 1,
+			},
+		}),
+	)
+	async createDocument(
+		@Param("keyType") keyType: string,
+		@Param("key") key: string,
+		@Body(createValidationPipe) body: CreateDocumentDto,
+		@UploadedFile() file: UploadedDocumentFile | undefined,
+	) {
+		const document = await this.documentsService.createDocument(
+			keyType,
+			key,
+			body,
+			file,
+		);
+		return { data: document };
 	}
 
 	@Get("documents/:documentId/file")

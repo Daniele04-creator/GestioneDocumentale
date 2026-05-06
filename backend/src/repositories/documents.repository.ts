@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { DataSource } from "typeorm";
+import { DataSource, type EntityManager } from "typeorm";
 import type { DocumentStatus } from "../entities/document.entity";
 
 export type DocumentFilters = {
@@ -64,6 +64,17 @@ export type UpdateDocumentChanges = {
 	status?: DocumentStatus;
 	archivedAt?: string;
 	updatedAt?: string;
+};
+
+export type CreateDocumentInput = {
+	subKey: string;
+	title: string;
+	description?: string;
+	ownerId: string;
+	status: Exclude<DocumentStatus, "archived">;
+	fileInfo: InternalFileInfo;
+	tags: string[];
+	createdAt: string;
 };
 
 @Injectable()
@@ -195,6 +206,109 @@ export class DocumentsRepository {
 		);
 
 		return rows.length > 0;
+	}
+
+	async subKeyExists(
+		keyType: string,
+		key: string,
+		subKey: string,
+	): Promise<boolean> {
+		const rows = await this.dataSource.query(
+			`
+				SELECT 1
+				FROM document_sub_keys
+				WHERE key_type = $1
+					AND key_value = $2
+					AND sub_key = $3
+				LIMIT 1
+			`,
+			[keyType, key, subKey],
+		);
+
+		return rows.length > 0;
+	}
+
+	async ownerExists(ownerId: string): Promise<boolean> {
+		const rows = await this.dataSource.query(
+			"SELECT 1 FROM owners WHERE id = $1 LIMIT 1",
+			[ownerId],
+		);
+
+		return rows.length > 0;
+	}
+
+	async createForKey(
+		keyType: string,
+		key: string,
+		input: CreateDocumentInput,
+	): Promise<DocumentRow | undefined> {
+		const documentId = await this.dataSource.transaction(async (manager) => {
+			const nextDocumentId = await this.nextDocumentId(manager);
+
+			await manager.query(
+				`
+					INSERT INTO documents (
+						id,
+						key_type,
+						key_value,
+						sub_key,
+						owner_id,
+						title,
+						description,
+						status,
+						file_info,
+						version,
+						created_at,
+						updated_at,
+						archived_at
+					)
+					VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, 1, $10, NULL, NULL)
+				`,
+				[
+					nextDocumentId,
+					keyType,
+					key,
+					input.subKey,
+					input.ownerId,
+					input.title,
+					input.description ?? null,
+					input.status,
+					JSON.stringify(input.fileInfo),
+					input.createdAt,
+				],
+			);
+
+			for (const tag of input.tags) {
+				await manager.query(
+					`
+						INSERT INTO tags (name)
+						SELECT $1::varchar
+						WHERE NOT EXISTS (
+							SELECT 1 FROM tags WHERE lower(name) = lower($1::varchar)
+						)
+					`,
+					[tag],
+				);
+				const tagRows = await manager.query(
+					"SELECT name FROM tags WHERE lower(name) = lower($1::varchar) LIMIT 1",
+					[tag],
+				);
+				const tagName = String(tagRows[0]?.name ?? tag);
+
+				await manager.query(
+					`
+						INSERT INTO document_tags (document_id, tag_name)
+						VALUES ($1, $2)
+						ON CONFLICT DO NOTHING
+					`,
+					[nextDocumentId, tagName],
+				);
+			}
+
+			return nextDocumentId;
+		});
+
+		return this.findByKeyAndId(keyType, key, documentId);
 	}
 
 	async updateForKey(
@@ -335,6 +449,19 @@ export class DocumentsRepository {
 
 		values.push(value);
 		setClauses.push(`${columnName} = $${values.length}`);
+	}
+
+	private async nextDocumentId(manager: EntityManager) {
+		const rows = await manager.query(
+			`
+				SELECT COALESCE(MAX((substring(id FROM 5))::int), 0)::int AS max_id
+				FROM documents
+				WHERE id ~ '^DOC-[0-9]{3}$'
+			`,
+		);
+
+		const nextNumber = Number(rows[0]?.max_id ?? 0) + 1;
+		return `DOC-${String(nextNumber).padStart(3, "0")}`;
 	}
 
 	private mapDocumentRow(row: Record<string, unknown>): DocumentRow {

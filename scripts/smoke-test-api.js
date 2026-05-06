@@ -1,10 +1,30 @@
+const { readFile, unlink } = require('node:fs/promises');
+const path = require('node:path');
+
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
 const KEY_TYPE = 'project';
 const KEY = 'PRJ-001';
 const SUB_KEY = 'PKG-001';
 const DOCUMENT_ID = 'DOC-001';
+const UPLOAD_SOURCE_FILE = path.join(
+  __dirname,
+  '..',
+  'storage',
+  'documents',
+  'report-avanzamento.txt',
+);
+const CREATE_DOCUMENT_BODY = {
+  subKey: SUB_KEY,
+  title: 'Report avanzamento smoke test',
+  description: 'Documento demo registrato dallo smoke test.',
+  ownerId: 'owner-001',
+  status: 'draft',
+  tags: ['Report', 'Progress'],
+};
 
 const results = [];
+let createdDocumentId;
+let createdFileName;
 
 function fail(message) {
   throw new Error(message);
@@ -28,7 +48,7 @@ function documentHasTag(document, tagName) {
   );
 }
 
-async function request(method, path, body) {
+async function request(method, requestPath, body) {
   const options = {
     method,
     headers: {
@@ -37,11 +57,15 @@ async function request(method, path, body) {
   };
 
   if (body !== undefined) {
-    options.headers['Content-Type'] = 'application/json';
-    options.body = JSON.stringify(body);
+    if (body instanceof FormData) {
+      options.body = body;
+    } else {
+      options.headers['Content-Type'] = 'application/json';
+      options.body = JSON.stringify(body);
+    }
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, options);
+  const response = await fetch(`${BASE_URL}${requestPath}`, options);
   const contentType = response.headers.get('content-type') || '';
 
   if (contentType.includes('application/json')) {
@@ -76,6 +100,56 @@ async function expectJson(method, path, expectedStatus, body) {
     `Expected status ${expectedStatus}, got ${result.response.status}`,
   );
   return result.body;
+}
+
+async function buildCreateDocumentForm(overrides = {}, fileName = '../report-avanzamento.txt') {
+  const body = {
+    ...CREATE_DOCUMENT_BODY,
+    ...overrides,
+  };
+  const formData = new FormData();
+  const fileBuffer = await readFile(UPLOAD_SOURCE_FILE);
+
+  formData.append('file', new Blob([fileBuffer], { type: 'text/plain' }), fileName);
+  formData.append('subKey', body.subKey);
+  formData.append('title', body.title);
+  formData.append('ownerId', body.ownerId);
+  if (body.description !== undefined) formData.append('description', body.description);
+  if (body.status !== undefined) formData.append('status', body.status);
+  for (const tag of body.tags || []) formData.append('tags', tag);
+
+  return formData;
+}
+
+function buildCreateDocumentFormWithoutFile(overrides = {}) {
+  const body = {
+    ...CREATE_DOCUMENT_BODY,
+    ...overrides,
+  };
+  const formData = new FormData();
+
+  formData.append('subKey', body.subKey);
+  formData.append('title', body.title);
+  formData.append('ownerId', body.ownerId);
+  if (body.description !== undefined) formData.append('description', body.description);
+  if (body.status !== undefined) formData.append('status', body.status);
+  for (const tag of body.tags || []) formData.append('tags', tag);
+
+  return formData;
+}
+
+function assertSafeGeneratedFileName(fileName) {
+  assert(!fileName.includes('..'), 'Generated fileName must not contain path traversal.');
+  assert(!fileName.includes('/'), 'Generated fileName must not contain slash.');
+  assert(!fileName.includes('\\'), 'Generated fileName must not contain backslash.');
+  assert(fileName.startsWith('uploaded-'), 'Generated fileName should use uploaded- prefix.');
+}
+
+async function cleanupCreatedFile() {
+  if (!createdFileName || !createdFileName.startsWith('uploaded-')) return;
+  await unlink(path.join(__dirname, '..', 'storage', 'documents', createdFileName)).catch(
+    () => undefined,
+  );
 }
 
 async function main() {
@@ -149,6 +223,90 @@ async function main() {
       400,
     );
     assert(body.code === 'INVALID_QUERY_PARAM', `Expected INVALID_QUERY_PARAM, got ${body.code}.`);
+  });
+
+  await runTest('POST documents registers metadata for existing file', async () => {
+    const formData = await buildCreateDocumentForm();
+    const body = await expectJson(
+      'POST',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
+      201,
+      formData,
+    );
+
+    createdDocumentId = body.data && body.data.id;
+    createdFileName = body.data && body.data.fileInfo && body.data.fileInfo.fileName;
+    assert(/^DOC-[0-9]{3}$/.test(createdDocumentId), 'Expected generated DOC-XXX id.');
+    assert(body.data.title === CREATE_DOCUMENT_BODY.title, 'Expected created title.');
+    assert(body.data.status === 'draft', 'Expected default draft status.');
+    assert(body.data.subKey && body.data.subKey.id === SUB_KEY, `Expected subKey ${SUB_KEY}.`);
+    assert(body.data.fileInfo, 'Expected public fileInfo.');
+    assert(
+      !Object.prototype.hasOwnProperty.call(body.data.fileInfo, 'storagePath'),
+      'fileInfo must not expose storagePath.',
+    );
+    assertSafeGeneratedFileName(createdFileName);
+    assert(documentHasTag(body.data, 'Report'), 'Expected Report tag on created document.');
+    assert(documentHasTag(body.data, 'Progress'), 'Expected Progress tag on created document.');
+  });
+
+  await runTest('GET documents contains created document', async () => {
+    assert(createdDocumentId, 'Created document id is missing.');
+    const body = await expectJson('GET', `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`, 200);
+    const documents = getDocuments(body);
+    assert(
+      documents.some((document) => document.id === createdDocumentId),
+      `Expected list to contain ${createdDocumentId}.`,
+    );
+  });
+
+  await runTest('GET created document detail returns 200', async () => {
+    assert(createdDocumentId, 'Created document id is missing.');
+    const body = await expectJson(
+      'GET',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}`,
+      200,
+    );
+    assert(body.data && body.data.id === createdDocumentId, `Expected data.id ${createdDocumentId}.`);
+  });
+
+  await runTest('GET created document file returns 200', async () => {
+    assert(createdDocumentId, 'Created document id is missing.');
+    const result = await request(
+      'GET',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents/${createdDocumentId}/file`,
+    );
+    assert(result.response.status === 200, `Expected status 200, got ${result.response.status}.`);
+    assert(String(result.body).length > 0, 'Expected non-empty file response.');
+  });
+
+  await runTest('POST documents with missing subKey returns SUB_KEY_NOT_FOUND', async () => {
+    const formData = await buildCreateDocumentForm({
+      subKey: 'PKG-NOT-FOUND',
+      title: 'SubKey missing smoke test',
+    });
+    const body = await expectJson(
+      'POST',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
+      404,
+      formData,
+    );
+    assert(body.code === 'SUB_KEY_NOT_FOUND', `Expected SUB_KEY_NOT_FOUND, got ${body.code}.`);
+  });
+
+  await runTest('POST documents without file returns INVALID_DOCUMENT_FILE', async () => {
+    const body = await expectJson(
+      'POST',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents`,
+      400,
+      buildCreateDocumentFormWithoutFile({
+        title: 'Unsafe file smoke test',
+      }),
+    );
+    assert(
+      body.code === 'INVALID_DOCUMENT_FILE',
+      `Expected INVALID_DOCUMENT_FILE, got ${body.code}.`,
+    );
   });
 
   await runTest('GET DOC-001 detail returns public fileInfo only', async () => {
@@ -230,12 +388,15 @@ async function main() {
     assert(body.code === 'DOCUMENT_ARCHIVED', `Expected DOCUMENT_ARCHIVED, got ${body.code}.`);
   });
 
+  await cleanupCreatedFile();
+
   const failed = results.filter((result) => !result.ok);
   const passed = results.length - failed.length;
 
   console.log('');
   console.log(`Smoke test summary: ${passed}/${results.length} passed.`);
   console.log('After this smoke test, run npm run db:seed to restore DOC-001.');
+  console.log('For a fully clean demo dataset, run npm run db:schema && npm run db:seed.');
 
   if (failed.length > 0) {
     process.exit(1);

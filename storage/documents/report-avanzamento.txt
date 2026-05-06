@@ -1,0 +1,5 @@
+Documento demo per registrazione metadati.
+
+Questo file rappresenta un documento gia' prodotto da una funzione esterna.
+Il modulo documentale lo usa solo per verificare il download dopo la
+registrazione dei metadati nel database.

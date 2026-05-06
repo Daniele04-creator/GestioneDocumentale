@@ -65,6 +65,7 @@ Endpoint principali:
 GET    /api/v1/health
 GET    /api/v1/document-keys/{keyType}/{key}/document-tree
 GET    /api/v1/document-keys/{keyType}/{key}/documents
+POST   /api/v1/document-keys/{keyType}/{key}/documents
 GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 GET    /api/v1/document-keys/{keyType}/{key}/documents/{documentId}/file
 PATCH  /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
@@ -72,6 +73,8 @@ DELETE /api/v1/document-keys/{keyType}/{key}/documents/{documentId}
 ```
 
 Il backend usa lo schema PostgreSQL esistente e mantiene `synchronize: false` in TypeORM. Il download usa `file_info.storagePath` internamente, ma non espone `storagePath` nelle response pubbliche.
+
+Il `POST /documents` acquisisce in `multipart/form-data` il documento finale prodotto da un modulo esterno, salva fisicamente il file in `storage/documents/` e registra i metadati nel database. Non e' upload manuale libero da UI: e' l'ingresso tecnico del documento gia' generato dal processo applicativo.
 
 ## OpenAPI e client
 
@@ -221,12 +224,13 @@ Il progetto valida:
 - contratto API documentale;
 - struttura dati di base;
 - filtri della home documentale;
+- acquisizione tecnica del documento finale e registrazione dei metadati;
 - tag e owner;
 - download file;
 - update e archiviazione logica;
 - client generato da OpenAPI.
 
-Non include funzionalita' fuori scope come autenticazione, ACL, upload manuale, generazione template, audit trail avanzato, versioning storico, condivisione o esportazione avanzata.
+Non include funzionalita' fuori scope come autenticazione, ACL, upload manuale libero, generazione template, audit trail avanzato, versioning storico, condivisione o esportazione avanzata.
 
 ## Prossimi sviluppi
 

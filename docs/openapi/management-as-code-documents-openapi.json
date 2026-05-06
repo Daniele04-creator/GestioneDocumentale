@@ -214,6 +214,134 @@
         "tags": [
           "Document keys"
         ]
+      },
+      "post": {
+        "description": "Acquisisce un documento finale prodotto da un modulo esterno, salva fisicamente il file nello storage documentale e registra i metadati nel database. Non rappresenta upload manuale libero da UI.",
+        "operationId": "DocumentKeysController_createDocument",
+        "parameters": [
+          {
+            "name": "keyType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "project"
+            },
+            "description": "Tipo del contenitore documentale"
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "example": "PRJ-001"
+            },
+            "description": "Identificativo del contenitore documentale"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentRequest"
+              },
+              "examples": {
+                "createDocument": {
+                  "summary": "Acquire generated document",
+                  "value": {
+                    "file": "<binary file>",
+                    "subKey": "PKG-001",
+                    "title": "Report avanzamento",
+                    "description": "Documento prodotto da una funzione esterna",
+                    "ownerId": "owner-001",
+                    "status": "draft",
+                    "tags": [
+                      "Report",
+                      "Progress"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document metadata registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid document creation payload or file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "INVALID_DOCUMENT_PATCH": {
+                    "summary": "Invalid document payload",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_PATCH",
+                      "message": "Invalid document patch."
+                    }
+                  },
+                  "INVALID_DOCUMENT_FILE": {
+                    "summary": "Invalid or missing document file",
+                    "value": {
+                      "code": "INVALID_DOCUMENT_FILE",
+                      "message": "Document file is required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Referenced key, subKey or owner was not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "KEY_NOT_FOUND": {
+                    "summary": "KEY_NOT_FOUND",
+                    "value": {
+                      "code": "KEY_NOT_FOUND",
+                      "message": "Document key not found."
+                    }
+                  },
+                  "SUB_KEY_NOT_FOUND": {
+                    "summary": "SUB_KEY_NOT_FOUND",
+                    "value": {
+                      "code": "SUB_KEY_NOT_FOUND",
+                      "message": "Document sub key not found."
+                    }
+                  },
+                  "OWNER_NOT_FOUND": {
+                    "summary": "OWNER_NOT_FOUND",
+                    "value": {
+                      "code": "OWNER_NOT_FOUND",
+                      "message": "Document owner not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Register document metadata",
+        "tags": [
+          "Document keys"
+        ]
       }
     },
     "/api/v1/document-keys/{keyType}/{key}/documents/{documentId}/file": {
@@ -1175,6 +1303,60 @@
               "approved"
             ],
             "example": "in_review"
+          }
+        }
+      },
+      "CreateDocumentRequest": {
+        "type": "object",
+        "required": [
+          "file",
+          "subKey",
+          "title",
+          "ownerId"
+        ],
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "Documento finale prodotto da un modulo esterno e acquisito dal modulo documentale."
+          },
+          "subKey": {
+            "type": "string",
+            "example": "PKG-001"
+          },
+          "title": {
+            "type": "string",
+            "example": "Report avanzamento"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Documento prodotto da una funzione esterna"
+          },
+          "ownerId": {
+            "type": "string",
+            "example": "owner-001"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "in_review",
+              "approved"
+            ],
+            "default": "draft",
+            "example": "draft"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "Report"
+            },
+            "example": [
+              "Report",
+              "Progress"
+            ]
           }
         }
       }
