@@ -22,10 +22,10 @@ export type DocumentFileInfo = {
 @Entity("documents")
 export class Document {
 	@PrimaryColumn({ type: "varchar", length: 30 })
-	id!: string;
+	key!: string;
 
 	@Column({ name: "package_id", type: "varchar", length: 100 })
-	packageId!: string;
+	subkey!: string;
 
 	@Column({ name: "owner_id", type: "varchar", length: 100 })
 	ownerId!: string;

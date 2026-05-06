@@ -10,7 +10,6 @@
 		"sourceMap": true,
 		"outDir": "./dist",
 		"rootDir": "./src",
-		"baseUrl": "./",
 		"incremental": true,
 		"skipLibCheck": true,
 		"strictNullChecks": true,
@@ -19,6 +18,5 @@
 		"strictBindCallApply": false,
 		"noFallthroughCasesInSwitch": false,
 		"types": ["jest", "node"],
-		"ignoreDeprecations": "5.0"
 	}
 }

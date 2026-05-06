@@ -12,7 +12,7 @@ import {
 	ValidationPipe,
 } from "@nestjs/common";
 import type { Response } from "express";
-import { invalidDocumentPatch } from "../../common/errors/document-errors";
+import { invalidDocumentPatch } from "../common/errors/document-errors";
 import { UpdateDocumentDto } from "../dto/update-document.dto";
 import { DocumentsService } from "../services/documents.service";
 

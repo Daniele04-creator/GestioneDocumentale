@@ -1,14 +1,14 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { DocumentsModule } from "./documents/documents.module";
-import { Document } from "./documents/entities/document.entity";
-import { DocumentTag } from "./documents/entities/document-tag.entity";
-import { Owner } from "./documents/entities/owner.entity";
-import { Package } from "./documents/entities/package.entity";
-import { Project } from "./documents/entities/project.entity";
-import { Tag } from "./documents/entities/tag.entity";
-import { HealthModule } from "./health/health.module";
+import { Document } from "./entities/document.entity";
+import { DocumentTag } from "./entities/document-tag.entity";
+import { Owner } from "./entities/owner.entity";
+import { Package } from "./entities/package.entity";
+import { Project } from "./entities/project.entity";
+import { Tag } from "./entities/tag.entity";
+import { DocumentsModule } from "./modules/documents.module";
+import { HealthModule } from "./modules/health.module";
 
 @Module({
 	imports: [

@@ -9,8 +9,8 @@ import {
 	invalidDocumentPatch,
 	invalidQueryParam,
 	projectNotFound,
-} from "../../common/errors/document-errors";
-import { PROJECT_ROOT, STORAGE_ROOT } from "../../common/utils/paths";
+} from "../common/errors/document-errors";
+import { PROJECT_ROOT, STORAGE_ROOT } from "../common/utils/paths";
 import { DOCUMENT_STATUS_VALUES } from "../dto/document-query.dto";
 import type { UpdateDocumentDto } from "../dto/update-document.dto";
 import type { DocumentStatus } from "../entities/document.entity";
