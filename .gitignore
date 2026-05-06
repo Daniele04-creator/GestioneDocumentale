@@ -6,8 +6,11 @@ dist/
 build/
 coverage/
 npm-debug.log*
-server/node_modules/
 client/node_modules/
+backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/tsconfig.build.tsbuildinfo
 
 # I file demo in storage/documents/ servono al prototipo e non sono ignorati.
 # Non aggiungere file reali o sensibili nello storage del repository.

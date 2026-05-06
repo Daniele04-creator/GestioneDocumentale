@@ -2,11 +2,11 @@
 
 Prototipo locale del modulo documentale per il progetto **Management as Code**.
 
-Il progetto raccoglie un mock server basato su OpenAPI, un client TypeScript Fetch generato, uno schema PostgreSQL con dati demo e script di supporto per verificare le API documentali. Lo scopo e' supportare il lavoro di tirocinio curriculare di Informatica di Daniele sul modulo documentale, senza presentare questo repository come backend definitivo di produzione.
+Il repository contiene il backend applicativo NestJS + TypeScript, un client TypeScript Fetch generato da OpenAPI, il contratto Swagger/OpenAPI, schema e seed PostgreSQL, script di supporto e file demo per il download documentale. Il lavoro supporta il tirocinio curriculare di Informatica di Daniele e non va presentato come prodotto definitivo di produzione.
 
 ## Contesto
 
-Il modulo documentale gestisce documenti collegati a un contesto progettuale. Nel prototipo la struttura principale e':
+Il modulo documentale gestisce documenti collegati a un contesto progettuale:
 
 ```text
 Progetto -> Package -> Task -> Documento
@@ -19,7 +19,7 @@ Ogni documento e' associato a:
 - una task;
 - un owner/responsabile documentale;
 - uno o piu' tag;
-- un file locale usato per il download.
+- un file locale demo usato per il download.
 
 La generazione automatica o stampa da template non e' implementata direttamente in questo modulo. Eventuali documenti generati da servizi esterni sono trattati come documenti gia' disponibili nel repository documentale.
 
@@ -27,41 +27,37 @@ La generazione automatica o stampa da template non e' implementata direttamente 
 
 ```text
 .
-|-- client/             # Client TypeScript Fetch generato da OpenAPI e script demo
+|-- backend/            # Backend NestJS + TypeScript principale
+|-- client/             # Client TypeScript Fetch generato da OpenAPI e demo client
 |-- database/           # Schema SQL e seed PostgreSQL
-|-- docs/openapi/       # File OpenAPI/Swagger JSON condivisibile
+|-- docs/openapi/       # Contratto OpenAPI/Swagger JSON
 |-- scripts/            # Script per schema, seed e smoke test API
-|-- server/             # Mock server/prototipo Node.js generato da OpenAPI
 |-- storage/documents/  # File demo locali collegati ai documenti seed
 |-- AGENTS.md           # Note operative del progetto per Codex
-|-- nodemon.json        # Configurazione avvio in sviluppo
 |-- package.json        # Script root di orchestrazione
 `-- package-lock.json
 ```
 
-Le cartelle `node_modules/` possono essere presenti dopo l'installazione delle dipendenze, ma non fanno parte del codice sorgente.
+Le cartelle `node_modules/`, `dist/` e `coverage/` sono artefatti locali e non fanno parte del codice sorgente.
 
 ## Tecnologie confermate
 
 - Node.js
-- JavaScript lato server
-- TypeScript lato client demo
-- TypeScript Fetch client generato
-- Swagger/OpenAPI
+- NestJS + TypeScript
+- TypeORM
 - PostgreSQL
-- `pg` per l'accesso al database
-- `oas3-tools` e `connect` per il mock server OpenAPI
-- `nodemon` per l'avvio in sviluppo
+- `pg` e `dotenv` per gli script database root
+- DTO con `class-validator` / `class-transformer`
+- Jest per test backend
+- Biome per check/formattazione backend
+- Swagger/OpenAPI come contratto API
+- Client TypeScript Fetch generato da OpenAPI
 
-## Swagger/OpenAPI e codice generato
+## Backend NestJS
 
-Il contratto OpenAPI principale si trova in:
+Il backend applicativo principale si trova in `backend/`.
 
-```text
-docs/openapi/management-as-code-documents-openapi.json
-```
-
-Il server operativo locale del prototipo si trova in `server/` ed espone le API documentali project-scoped, tra cui:
+Endpoint principali:
 
 ```text
 GET    /api/v1/health
@@ -73,15 +69,19 @@ PATCH  /api/v1/projects/{projectId}/documents/{documentId}
 DELETE /api/v1/projects/{projectId}/documents/{documentId}
 ```
 
-Quando il server e' avviato, la Swagger UI locale e' disponibile su:
+Il backend usa lo schema PostgreSQL esistente e mantiene `synchronize: false` in TypeORM. Il download usa `file_info.storagePath` internamente, ma non espone `storagePath` nelle response pubbliche.
+
+## OpenAPI e client
+
+Il contratto OpenAPI principale si trova in:
 
 ```text
-http://localhost:3000/docs
+docs/openapi/management-as-code-documents-openapi.json
 ```
 
-Il client in `client/` e' un client TypeScript Fetch generato da OpenAPI e contiene uno script demo che chiama il server locale.
+Il client in `client/` e' un client TypeScript Fetch generato da OpenAPI. Serve come supporto tecnico e demo per chiamare il backend locale.
 
-Nota: il server in `server/` e' un mock/prototipo operativo basato su OpenAPI. Non e' production-ready e non va trattato come backend definitivo. Il backend reale futuro del progetto Management as Code resta da allineare con le scelte del team e potra' essere implementato in NestJS.
+OpenAPI e client restano materiali di supporto: il backend applicativo mantenuto in questo repository e' `backend/`.
 
 ## Flusso home documentale
 
@@ -116,7 +116,7 @@ Lo schema crea le tabelle principali:
 
 Il seed popola dati demo e documenti collegati a file locali in `storage/documents/`.
 
-Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Il file `.env.example` contiene valori di esempio per l'ambiente locale: copiarlo in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
+Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Copiare `.env.example` in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
 
 ## Installazione ed esecuzione
 
@@ -142,7 +142,7 @@ Installare le dipendenze:
 
 ```bash
 npm install
-npm --prefix server install
+npm --prefix backend install
 npm --prefix client install
 ```
 
@@ -153,25 +153,32 @@ npm run db:schema
 npm run db:seed
 ```
 
-Eseguire la build completa:
+Build backend:
 
 ```bash
 npm run build
 ```
 
-Avviare il server:
+Avvio backend:
 
 ```bash
 npm start
 ```
 
-Avvio in sviluppo con nodemon:
+Avvio in sviluppo:
 
 ```bash
 npm run start:dev
 ```
 
-Con il server gia' avviato su `http://localhost:3000`, eseguire lo smoke test API:
+Test e check backend:
+
+```bash
+npm run backend:test
+npm run backend:lint
+```
+
+Con il backend gia' avviato su `http://localhost:3000`, eseguire lo smoke test API:
 
 ```bash
 npm run test:api
@@ -183,7 +190,7 @@ Eseguire il demo client TypeScript Fetch:
 npm run client:demo
 ```
 
-Alcuni test aggiornano o archiviano il documento demo `DOC-001`. Dopo l'esecuzione completa di smoke test o demo client, ripristinare i dati con:
+Alcuni test aggiornano o archiviano il documento demo `DOC-001`. Dopo smoke test o demo client, ripristinare i dati con:
 
 ```bash
 npm run db:seed
@@ -195,37 +202,38 @@ Non devono essere versionati file locali o generati come:
 
 - `.env` e altri file di configurazione contenenti segreti;
 - `node_modules/`;
-- `server/node_modules/`;
+- `backend/node_modules/`;
 - `client/node_modules/`;
+- `dist/`;
+- `backend/dist/`;
+- `coverage/`;
 - log locali;
-- build temporanee;
 - storage locale se contiene file non demo o dati non condivisibili.
 
-I file presenti in `storage/documents/`, quando disponibili, sono usati dal prototipo come file demo per testare il download dei documenti seed. Per questo motivo la cartella non viene ignorata in blocco da `.gitignore`. Prima di condividere il repository, verificare sempre che contenga solo file demo e nessun dato reale o sensibile.
+I file presenti in `storage/documents/`, quando disponibili, sono usati dal prototipo come file demo per testare il download dei documenti seed. Prima di condividere il repository, verificare sempre che contengano solo dati fittizi e nessun dato reale o sensibile.
 
 ## Stato del progetto
 
-Questo repository e' un **prototipo/MVP didattico** a supporto del tirocinio curriculare. Serve a validare:
+Questo repository e' un **prototipo/MVP didattico** a supporto del tirocinio curriculare. La base backend attuale e' NestJS + TypeScript in `backend/`, riallineata allo stack tecnico di Management as Code.
+
+Il progetto valida:
 
 - contratto API documentale;
 - struttura dati di base;
 - filtri della home documentale;
 - tag e owner;
 - download file;
-- comportamento di update e archiviazione logica;
+- update e archiviazione logica;
 - client generato da OpenAPI.
 
 Non include funzionalita' fuori scope come autenticazione, ACL, upload manuale, generazione template, audit trail avanzato, versioning storico, condivisione o esportazione avanzata.
-
-Durante la verifica locale, `npm audit --omit=dev` risulta pulito su root e client, mentre il server mock puo' segnalare vulnerabilita' high in dipendenze transitive del server generato OpenAPI. Per la demo locale non sono state aggiornate dipendenze major; prima di un eventuale uso reale va rivalutato lo stack del mock server con aggiornamenti controllati.
 
 ## Prossimi sviluppi
 
 Possibili evoluzioni realistiche, da confermare con tutor e team:
 
-- riallineare il contratto OpenAPI con il backend reale del progetto;
-- integrare la logica nel backend NestJS ufficiale quando disponibile;
+- validare il backend NestJS con il tutor prima di replicarlo nel repository aziendale;
+- riallineare il contratto OpenAPI con il backend reale quando il team lo conferma;
 - collegare il client generato al frontend della home documentale;
-- consolidare esempi JSON e casi Postman/smoke test;
-- definire una gestione versioni documentali solo se diventa requisito;
-- valutare upload, anteprima o permessi solo dopo conferma di scope.
+- consolidare smoke test e casi Postman;
+- valutare upload, anteprima, permessi o versioning solo dopo conferma di scope.

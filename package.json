@@ -1,13 +1,20 @@
 {
   "name": "management-as-code-documents-api",
   "version": "0.1.0",
-  "description": "OpenAPI-based prototype and mock server for the Management as Code documents API.",
+  "description": "NestJS TypeScript backend prototype for the Management as Code documents API.",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npm --prefix server run build && npm --prefix client run build",
-    "start": "npm --prefix server start",
-    "start:dev": "nodemon",
+    "build": "npm --prefix backend run build",
+    "start": "npm --prefix backend run start",
+    "start:dev": "npm --prefix backend run start:dev",
+    "backend:install": "npm --prefix backend install",
+    "backend:start": "npm --prefix backend run start",
+    "backend:start:dev": "npm --prefix backend run start:dev",
+    "backend:build": "npm --prefix backend run build",
+    "backend:test": "npm --prefix backend test",
+    "backend:lint": "npm --prefix backend run check",
+    "client:build": "npm --prefix client run build",
     "client:demo": "npm --prefix client run demo",
     "test:api": "node scripts/smoke-test-api.js",
     "db:schema": "node scripts/run-schema.js",
@@ -16,8 +23,5 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "pg": "^8.20.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.14"
   }
 }
