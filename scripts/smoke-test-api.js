@@ -215,13 +215,27 @@ async function main() {
     );
   });
 
-  await runTest('GET documents by search Francesca', async () => {
+  await runTest('GET documents by tag API', async () => {
+    const body = await expectJson(
+      'GET',
+      `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents?tag=API`,
+      200,
+    );
+    const documents = getDocuments(body);
+    assert(documents.length > 0, 'Expected at least one document.');
+    assert(
+      documents.every((document) => documentHasTag(document, 'API')),
+      'Expected every document to contain tag API.',
+    );
+  });
+
+  await runTest('GET documents with search returns INVALID_QUERY_PARAM', async () => {
     const body = await expectJson(
       'GET',
       `/api/v1/document-keys/${KEY_TYPE}/${KEY}/documents?search=Francesca`,
-      200,
+      400,
     );
-    assert(Array.isArray(body.data), 'Expected data array.');
+    assert(body.code === 'INVALID_QUERY_PARAM', `Expected INVALID_QUERY_PARAM, got ${body.code}.`);
   });
 
   await runTest('GET documents by subKey returns only that subKey', async () => {

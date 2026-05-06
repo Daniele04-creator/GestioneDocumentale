@@ -12,7 +12,6 @@ export type DocumentFilters = {
 	ownerId?: string;
 	tag?: string;
 	status?: DocumentStatus;
-	search?: string;
 };
 
 export type PublicFileInfo = {
@@ -132,7 +131,6 @@ export class DocumentsRepository {
 		const where: string[] = [];
 		const params: unknown[] = [];
 
-		this.addTextSearchFilter(where, params, filters.search);
 		this.addPlainFilter(where, params, "d.key_type", filters.keyType);
 		this.addPlainFilter(where, params, "d.key_value", filters.key);
 		this.addPlainFilter(where, params, "d.sub_key", filters.subKey);
@@ -766,35 +764,6 @@ export class DocumentsRepository {
 			...document,
 			tags: tagsByDocumentId.get(document.id) ?? [],
 		}));
-	}
-
-	private addTextSearchFilter(
-		where: string[],
-		params: unknown[],
-		search?: string,
-	) {
-		if (!search) return;
-
-		params.push(`%${search}%`);
-		where.push(`(
-			d.id ILIKE $${params.length}
-			OR d.document_key ILIKE $${params.length}
-			OR d.metadata->>'title' ILIKE $${params.length}
-			OR d.metadata->>'templateId' ILIKE $${params.length}
-			OR d.metadata->>'templateName' ILIKE $${params.length}
-			OR d.key_type ILIKE $${params.length}
-			OR d.key_value ILIKE $${params.length}
-			OR d.sub_key ILIKE $${params.length}
-			OR dk.name ILIKE $${params.length}
-			OR ds.name ILIKE $${params.length}
-			OR o.name ILIKE $${params.length}
-			OR EXISTS (
-				SELECT 1
-				FROM document_tags search_dt
-				WHERE search_dt.document_id = d.id
-					AND search_dt.tag_name ILIKE $${params.length}
-			)
-		)`);
 	}
 
 	private addTagFilter(where: string[], params: unknown[], tagName?: string) {

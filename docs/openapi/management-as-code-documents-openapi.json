@@ -89,17 +89,9 @@
     },
     "/api/v1/document-keys/{keyType}/{key}/documents": {
       "get": {
-        "description": "Restituisce i documenti del contenitore documentale, raggruppati per subKey e filtrabili tramite query parameters.",
+        "description": "Restituisce i documenti del contenitore documentale, raggruppati per subKey. La ricerca documentale avviene tramite tag; restano disponibili filtri tecnici per subKey, status e ownerId.",
         "operationId": "DocumentKeysController_listDocuments",
         "parameters": [
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "example": "srs"
-            }
-          },
           {
             "name": "status",
             "required": false,
@@ -113,7 +105,8 @@
                 "archived"
               ],
               "example": "approved"
-            }
+            },
+            "description": "Filtro tecnico per stato documento."
           },
           {
             "name": "tag",
@@ -121,7 +114,8 @@
             "in": "query",
             "schema": {
               "example": "Architettura"
-            }
+            },
+            "description": "Nome tag usato come criterio di ricerca documentale case-insensitive."
           },
           {
             "name": "ownerId",
@@ -129,7 +123,8 @@
             "in": "query",
             "schema": {
               "example": "owner-001"
-            }
+            },
+            "description": "Filtro tecnico per owner del documento."
           },
           {
             "name": "subKey",
@@ -137,7 +132,8 @@
             "in": "query",
             "schema": {
               "example": "PKG-001"
-            }
+            },
+            "description": "Filtra i documenti di uno specifico subKey."
           },
           {
             "name": "keyType",

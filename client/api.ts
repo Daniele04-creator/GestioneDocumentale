@@ -248,7 +248,6 @@ export class DocumentKeysApi extends BaseAPI {
     public documentKeysControllerListDocuments(
         keyType: string,
         key: string,
-        search?: string,
         status?: string,
         tag?: string,
         ownerId?: string,
@@ -256,7 +255,6 @@ export class DocumentKeysApi extends BaseAPI {
         options: any = {},
     ): Promise<DocumentHomeResponse> {
         const query = new URLSearchParams();
-        if (search !== undefined) query.set("search", search);
         if (status !== undefined) query.set("status", status);
         if (tag !== undefined) query.set("tag", tag);
         if (ownerId !== undefined) query.set("ownerId", ownerId);

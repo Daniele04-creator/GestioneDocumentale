@@ -33,7 +33,7 @@ import {
 } from "../repositories/documents.repository";
 
 type StatusSummary = Record<DocumentStatus, number>;
-const QUERY_FIELDS = new Set(["subKey", "ownerId", "tag", "status", "search"]);
+const QUERY_FIELDS = new Set(["subKey", "ownerId", "tag", "status"]);
 type DocumentListItem = Pick<
 	DocumentRow,
 	| "id"
@@ -392,7 +392,6 @@ export class DocumentsService {
 			ownerId: this.optionalQueryString(query.ownerId, "ownerId"),
 			tag: this.optionalQueryString(query.tag, "tag"),
 			status,
-			search: this.optionalQueryString(query.search, "search", true),
 		};
 	}
 

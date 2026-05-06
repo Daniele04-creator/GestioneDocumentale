@@ -101,7 +101,8 @@ La home documentale usa un caricamento progressivo:
 1. all'apertura, il frontend chiama `GET /api/v1/document-keys/{keyType}/{key}/document-tree`;
 2. la UI mostra i `subKey` con `documentCount` e `statusSummary`;
 3. quando l'utente espande un `subKey`, il frontend chiama `GET /api/v1/document-keys/{keyType}/{key}/documents?subKey=...`;
-4. per filtri globali come `tag`, `status` e `search`, il frontend usa `GET /api/v1/document-keys/{keyType}/{key}/documents` con query params.
+4. per la ricerca documentale il frontend usa `GET /api/v1/document-keys/{keyType}/{key}/documents?tag=...`;
+5. per filtri tecnici come `status`, `ownerId` e `subKey`, il frontend usa lo stesso endpoint con query params dedicati.
 
 In questo modo la pagina carica subito una struttura leggera e recupera i documenti completi solo quando servono.
 
@@ -137,7 +138,7 @@ Gli identificativi pubblici dei documenti restano nel formato `DOC-001`, `DOC-02
 
 La tabella `documents` contiene la versione corrente e il checksum SHA-256 corrente. La tabella `document_versions` mantiene lo storico dei file e dei checksum per ogni versione.
 
-I dati descrittivi variabili del documento stanno in `documents.metadata` (`JSONB`). I campi core restano colonne strutturate: identificativi, `owner_id`, `status`, `file_info`, `checksum_sha256`, `version` e date tecniche. `file_info` resta un JSONB separato per i metadati tecnici del file. I tag restano in tabelle dedicate perche' sono il criterio principale di filtro e ricerca documentale. La tabella `owners` e `owner_id` restano presenti provvisoriamente finche' non viene confermata una gestione esterna degli owner.
+I dati descrittivi variabili del documento stanno in `documents.metadata` (`JSONB`). I campi core restano colonne strutturate: identificativi, `owner_id`, `status`, `file_info`, `checksum_sha256`, `version` e date tecniche. `file_info` resta un JSONB separato per i metadati tecnici del file. I tag restano in tabelle dedicate perche' sono l'unico criterio di ricerca documentale. `metadata` non viene usato per ricerca testuale libera. La tabella `owners` e `owner_id` restano presenti provvisoriamente finche' non viene confermata una gestione esterna degli owner.
 
 Gli script database usano le variabili di ambiente lette da `.env`, con fallback locali definiti negli script. Copiare `.env.example` in `.env` e adattarlo alla propria installazione PostgreSQL. Non inserire credenziali reali nel codice o nella documentazione.
 

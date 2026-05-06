@@ -24,8 +24,4 @@ export class DocumentQueryDto {
 	@IsOptional()
 	@IsIn(DOCUMENT_STATUS_VALUES)
 	status?: DocumentStatus;
-
-	@IsOptional()
-	@IsString()
-	search?: string;
 }

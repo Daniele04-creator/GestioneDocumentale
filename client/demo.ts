@@ -35,7 +35,6 @@ async function main() {
     keyType,
     key,
     undefined,
-    undefined,
     'Architettura',
   );
   assertDocumentsHaveTag(architetturaFilter, 'Architettura');
@@ -44,7 +43,6 @@ async function main() {
   const qaFilter = await documentsApi.documentKeysControllerListDocuments(
     keyType,
     key,
-    undefined,
     undefined,
     'QA',
   );
@@ -55,27 +53,19 @@ async function main() {
     keyType,
     key,
     undefined,
-    undefined,
     'TagInesistente',
   );
   assertEmptyResult(missingTagFilter, 'missing tag');
   console.log('tag TagInesistente:', missingTagFilter.meta.totalDocuments);
 
-  const ownerSearch = await documentsApi.documentKeysControllerListDocuments(
+  const apiTagFilter = await documentsApi.documentKeysControllerListDocuments(
     keyType,
     key,
-    'Francesca',
+    undefined,
+    'API',
   );
-  assertHasDocuments(ownerSearch, 'search Francesca');
-  console.log('search Francesca:', ownerSearch.meta.totalDocuments);
-
-  const apiSearch = await documentsApi.documentKeysControllerListDocuments(
-    keyType,
-    key,
-    'api',
-  );
-  assertHasDocuments(apiSearch, 'search api');
-  console.log('search api:', apiSearch.meta.totalDocuments);
+  assertDocumentsHaveTag(apiTagFilter, 'API');
+  console.log('tag API:', apiTagFilter.meta.totalDocuments);
 
   await expectInvalidQueryParam();
 
@@ -251,7 +241,6 @@ async function expectInvalidQueryParam() {
     await documentsApi.documentKeysControllerListDocuments(
       keyType,
       key,
-      undefined,
       undefined,
       undefined,
       undefined,
